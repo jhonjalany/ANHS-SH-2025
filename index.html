@@ -1360,11 +1360,14 @@ Graduates of 2025, we all belong.
         }
 
         // Generate student cards
-        function generateStudentCards(section, containerId, page = 1) {
+        function generateStudentCards(section, containerId, page = 1, limit = ITEMS_PER_PAGE) {
             const container = document.getElementById(containerId);
-            const startIndex = (page - 1) * ITEMS_PER_PAGE;
-            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const startIndex = (page - 1) * limit;
+            const endIndex = startIndex + limit;
             const studentsToShow = students[section].slice(startIndex, endIndex);
+
+            // Avoid re-adding cards if already loaded
+            if (container.children.length >= studentsToShow.length && page === 1) return;
 
             studentsToShow.forEach(student => {
                 const card = document.createElement('div');
@@ -1381,9 +1384,36 @@ Graduates of 2025, we all belong.
                 container.appendChild(card);
             });
 
+            // Mark if fully loaded
             if (endIndex >= students[section].length) {
                 isFetching[section] = true;
             }
+        }
+
+        function setupSectionObservers() {
+            const sectionIds = [
+                'aries', 'capricorn', 'gemini', 'leo',
+                'libra', 'saguitarius', 'taurus', 'virgo'
+            ];
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const sectionName = entry.target.id.replace('-title', '');
+                        if (currentPage[sectionName] === 0) { // not loaded yet
+                            generateStudentCards(sectionName, `${sectionName}-students`, 1, ITEMS_PER_PAGE);
+                            currentPage[sectionName] = 1;
+                        }
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            // Observe each section title (e.g., #aries-title)
+            sectionIds.forEach(id => {
+                const titleEl = document.getElementById(`${id}-title`);
+                if (titleEl) observer.observe(titleEl);
+            });
         }
 
         // Generate teachers
@@ -1718,6 +1748,16 @@ document.querySelectorAll('.students-grid').forEach(grid => {
     if (firstVisibleTitle) {
         firstVisibleTitle.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
     }
+
+    // After finding matchingStudents & sectionsWithMatches:
+    sectionsWithMatches.forEach(sectionKey => {
+        if (currentPage[sectionKey] === 0) {
+            // Force-generate full section for accurate filtering
+            generateStudentCards(sectionKey, `${sectionKey}-students`, 1, students[sectionKey].length);
+            currentPage[sectionKey] = 1;
+            isFetching[sectionKey] = true;
+        }
+    });
 });
 
 
@@ -1770,19 +1810,10 @@ document.querySelectorAll('.students-grid').forEach(grid => {
         document.addEventListener('DOMContentLoaded', () => {
             loading.style.display = 'block';
             setTimeout(() => {
+                // ✅ ONLY load first ~12 cards of FIRST section (Aquarius)
+                generateStudentCards('aquarius', 'aquarius-students', 1, 1000); // ← add limit param
 
-                // ✅ ADD NEW SECTION HERE 
-                generateStudentCards('aquarius', 'aquarius-students', 1);
-                generateStudentCards('aries', 'aries-students', 1);
-                generateStudentCards('capricorn', 'capricorn-students', 1);
-                generateStudentCards('gemini', 'gemini-students', 1);
-                generateStudentCards('leo', 'leo-students', 1);
-                generateStudentCards('libra', 'libra-students', 1);
-                generateStudentCards('saguitarius', 'saguitarius-students', 1);
-                generateStudentCards('taurus', 'taurus-students', 1);
-                generateStudentCards('virgo', 'virgo-students', 1);
-                // generateStudentCards('pisces', 'pisces-students', 1);  // ✅ add this
-
+                // ✅ DO NOT generate other sections yet
                 generateTeachers();
                 generateIndividualAchievements();
                 generateOtherAwards();
@@ -1791,20 +1822,16 @@ document.querySelectorAll('.students-grid').forEach(grid => {
                 generateLyrics();
                 loading.style.display = 'none';
 
-                 // ✅ ADD NEW SECTION HERE
                 currentPage.aquarius = 1;
-                currentPage.aries = 1;
-                currentPage.capricorn = 1;
-                currentPage.gemini = 1;
-                currentPage.leo = 1;
-                currentPage.libra = 1;
-                currentPage.saguitarius = 1;
-                currentPage.taurus = 1;
-                currentPage.virgo = 1;
-                // currentPage.pisces = 1;  // ✅
+                // Mark others as *unloaded*, not just "not fetching"
+                ['aries', 'capricorn', 'gemini', 'leo', 'libra', 'saguitarius', 'taurus', 'virgo'].forEach(s => {
+                    isFetching[s] = false;
+                    currentPage[s] = 0; // 0 = not generated yet
+                });
 
-                document.querySelectorAll('.section').forEach(s => s.classList.add('fade-in'));
-            }, 1000);
+                // ✅ Set up Intersection Observer for on-demand section loading
+                setupSectionObservers();
+            }, 500); // reduce delay for perceived speed
         });
 
         // Keyboard support
