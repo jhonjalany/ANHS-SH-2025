@@ -1345,6 +1345,42 @@ Graduates of 2025, we all belong.
             img.src = src;
         }
 
+        // Force-generate & prioritize image for a matching student (even if section not loaded)
+function ensureStudentCardAndLoad(studentName, sectionKey) {
+    const container = document.getElementById(`${sectionKey}-students`);
+    if (!container) return;
+
+    // If section hasn't been loaded yet, generate *all* its cards instantly (just once)
+    if (currentPage[sectionKey] === 0) {
+        generateStudentCards(sectionKey, `${sectionKey}-students`, 1, students[sectionKey].length);
+        currentPage[sectionKey] = 1;
+        isFetching[sectionKey] = true;
+        // Wait a tick for DOM to update
+        requestAnimationFrame(() => triggerImageLoadFor(studentName));
+    } else {
+        // Section already loaded — just find & prioritize image
+        triggerImageLoadFor(studentName);
+    }
+}
+
+// Actually load image (bypass lazy placeholder) for a matching student by name
+function triggerImageLoadFor(studentName) {
+    const cards = document.querySelectorAll('.student-card');
+    for (const card of cards) {
+        const nameEl = card.querySelector('.student-name');
+        if (nameEl && nameEl.textContent === studentName) {
+            const imgEl = card.querySelector('.student-img');
+            const student = [...Object.values(students).flat()].find(s => s.name === studentName);
+            if (student && imgEl) {
+                // Prioritize: load image *now*, no blur, no placeholder
+                imgEl.classList.remove('img-placeholder');
+                imgEl.src = student.img;
+                break;
+            }
+        }
+    }
+}
+
         // Get all awards (individual + other) for a student
         function getAllAwards(studentName) {
             const awardsSet = new Set();
@@ -1645,121 +1681,92 @@ function openTeacherModal(teacher, imgSrc) {
             });
         });
 
-        // Search
-       // Enhanced Search: Hide sections with no matches
-searchInput.addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase().trim();
+       // Enhanced Search: Prioritize loading images for matches
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase().trim();
 
-    // Reset: Show all section titles and cards initially
-    document.querySelectorAll('.section-title').forEach(t => {
-        t.classList.remove('highlight');
-        t.style.display = 'block';
-    });
-    document.querySelectorAll('.student-card, .teacher-card').forEach(c => c.style.display = 'block');
+            // Reset UI
+            document.querySelectorAll('.section-title').forEach(t => {
+                t.classList.remove('highlight');
+                t.style.display = 'block';
+            });
+            document.querySelectorAll('.student-card, .teacher-card').forEach(c => c.style.display = 'block');
 
-    // If search is empty, stop here
-    if (term === '') return;
+            if (term === '') return;
 
-    // Section-to-container mapping (for extensibility)
-    const sectionMap = {
-        aquarius: { titleId: 'aquarius-title', containerId: 'aquarius-students' },
-        aries: { titleId: 'aries-title', containerId: 'aries-students' },
-        capricorn: { titleId: 'capricorn-title', containerId: 'capricorn-students' },
-        gemini: { titleId: 'gemini-title', containerId: 'gemini-students' },
-        leo: { titleId: 'leo-title', containerId: 'leo-students' },
-        libra: { titleId: 'libra-title', containerId: 'libra-students' },
-        saguitarius: { titleId: 'saguitarius-title', containerId: 'saguitarius-students' },
-        taurus: { titleId: 'taurus-title', containerId: 'taurus-students' },
-        virgo: { titleId: 'virgo-title', containerId: 'virgo-students' }
-        // ✅ Add new sections here as needed, e.g.:
-        // pisces: { titleId: 'pisces-title', containerId: 'pisces-students' }
-    };
+            // Section mapping
+            const sectionMap = {
+                aquarius: { titleId: 'aquarius-title', containerId: 'aquarius-students' },
+                aries: { titleId: 'aries-title', containerId: 'aries-students' },
+                capricorn: { titleId: 'capricorn-title', containerId: 'capricorn-students' },
+                gemini: { titleId: 'gemini-title', containerId: 'gemini-students' },
+                leo: { titleId: 'leo-title', containerId: 'leo-students' },
+                libra: { titleId: 'libra-title', containerId: 'libra-students' },
+                saguitarius: { titleId: 'saguitarius-title', containerId: 'saguitarius-students' },
+                taurus: { titleId: 'taurus-title', containerId: 'taurus-students' },
+                virgo: { titleId: 'virgo-title', containerId: 'virgo-students' }
+            };
 
-    // First pass: check for section name match
-    let sectionMatchFound = false;
-    for (const [key, { titleId, containerId }] of Object.entries(sectionMap)) {
-        const titleEl = document.getElementById(titleId);
-        if (key.toLowerCase().includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term))) {
-            titleEl.classList.add('highlight');
-            sectionMatchFound = true;
-        }
-    }
+            // Step 1: Find ALL matching students globally (even in unloaded sections)
+            const matchingStudents = [];
+            for (const [sectionKey, studentList] of Object.entries(students)) {
+                for (const student of studentList) {
+                    if (student.name.toLowerCase().includes(term)) {
+                        matchingStudents.push({ ...student, section: sectionKey });
+                    }
+                }
+            }
 
-    // Gather all student names across sections (with section association)
-    const allStudents = [];
-    for (const [sectionKey, data] of Object.entries(sectionMap)) {
-        const studentsInSection = students[sectionKey] || [];
-        studentsInSection.forEach(student => {
-            allStudents.push({ ...student, section: sectionKey });
+            // Step 2: Ensure their cards exist & prioritize image loading
+            matchingStudents.forEach(s => ensureStudentCardAndLoad(s.name, s.section));
+
+            // Step 3: UI filtering (hide non-matching)
+            const sectionsWithMatches = new Set(matchingStudents.map(s => s.section));
+
+            // Section name match?
+            let sectionNameMatch = false;
+            for (const [key, { titleId }] of Object.entries(sectionMap)) {
+                const titleEl = document.getElementById(titleId);
+                if (key.includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term))) {
+                    sectionsWithMatches.add(key);
+                    if (titleEl) titleEl.classList.add('highlight');
+                    sectionNameMatch = true;
+                }
+            }
+
+            // Hide/show sections & cards
+            for (const [key, { titleId, containerId }] of Object.entries(sectionMap)) {
+                const titleEl = document.getElementById(titleId);
+                const containerEl = document.getElementById(containerId);
+                if (sectionsWithMatches.has(key)) {
+                    titleEl.style.display = 'block';
+                    if (sectionNameMatch && key.toLowerCase().includes(term)) {
+                        // Show all in section if section name matched
+                        containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'block');
+                    } else {
+                        // Show only matching students
+                        containerEl.querySelectorAll('.student-card').forEach(card => {
+                            const name = card.querySelector('.student-name')?.textContent.toLowerCase() || '';
+                            card.style.display = name.includes(term) ? 'block' : 'none';
+                        });
+                    }
+                } else {
+                    titleEl.style.display = 'none';
+                    containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'none');
+                }
+            }
+
+            // Hide empty grids
+            document.querySelectorAll('.students-grid').forEach(grid => {
+                grid.style.display = Array.from(grid.children).some(c => c.style.display !== 'none') ? 'grid' : 'none';
+            });
+
+            // Scroll to first match
+            const firstMatch = document.querySelector('.student-card[style*="block"]');
+            if (firstMatch) {
+                firstMatch.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         });
-    }
-
-    // Find matching students
-    const matchingStudents = allStudents.filter(s =>
-        s.name.toLowerCase().includes(term)
-    );
-
-    // Build set of sections that have matches (either by name or student)
-    const sectionsWithMatches = new Set(matchingStudents.map(s => s.section));
-    if (sectionMatchFound) {
-        // If section name matched, show *all* students in that section
-        for (const [key, { titleId }] of Object.entries(sectionMap)) {
-            const titleEl = document.getElementById(titleId);
-            if (key.toLowerCase().includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term))) {
-                sectionsWithMatches.add(key);
-            }
-        }
-    }
-
-    // Hide sections *without* matches
-    for (const [key, { titleId, containerId }] of Object.entries(sectionMap)) {
-        const titleEl = document.getElementById(titleId);
-        const containerEl = document.getElementById(containerId);
-        if (sectionsWithMatches.has(key)) {
-            titleEl.style.display = 'block';
-            // If section name matched (not just student), show *all* its students
-            const sectionNameMatched = key.toLowerCase().includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term));
-            if (sectionNameMatched) {
-                containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'block');
-            } else {
-                // Otherwise, show only matching students in this section
-                containerEl.querySelectorAll('.student-card').forEach(card => {
-                    const nameEl = card.querySelector('.student-name');
-                    const name = nameEl ? nameEl.textContent.toLowerCase() : '';
-                    card.style.display = name.includes(term) ? 'block' : 'none';
-                });
-            }
-        } else {
-            // Hide entire section
-            titleEl.style.display = 'none';
-            containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'none');
-        }
-    }
-    // After hiding cards & titles, also hide student-grid containers if empty
-document.querySelectorAll('.students-grid').forEach(grid => {
-    const visibleCards = Array.from(grid.children).some(card => 
-        card.style.display !== 'none'
-    );
-    grid.style.display = visibleCards ? 'grid' : 'none';
-});
-
-    // Optional: smooth scroll to first visible section if any
-    const firstVisibleTitle = document.querySelector('.section-title:not([style*="display: none"])');
-    if (firstVisibleTitle) {
-        firstVisibleTitle.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
-    }
-
-    // After finding matchingStudents & sectionsWithMatches:
-    sectionsWithMatches.forEach(sectionKey => {
-        if (currentPage[sectionKey] === 0) {
-            // Force-generate full section for accurate filtering
-            generateStudentCards(sectionKey, `${sectionKey}-students`, 1, students[sectionKey].length);
-            currentPage[sectionKey] = 1;
-            isFetching[sectionKey] = true;
-        }
-    });
-});
-
 
 
         // Scroll to top
