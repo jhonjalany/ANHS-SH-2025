@@ -1316,6 +1316,10 @@ Graduates of 2025, we all belong.
         const scrollLoader = document.getElementById('scrollLoader');
         const scrollToTopBtn = document.getElementById('scrollToTopBtn');
 
+        // Cache & abort tracking
+        const imageLoadState = new Map(); // { src → { abortController, loaded, element } }
+        const loadedImages = new Set(); // src strings of already loaded images
+
         // Pagination
         // ✅ ADD NEW SECTION HERE 
         const ITEMS_PER_PAGE = 1000;
@@ -1323,64 +1327,61 @@ Graduates of 2025, we all belong.
         let isFetching = { aquarius: false, aries: false, capricorn: false, gemini: false, leo: false, libra: false, saguitarius: false, taurus: false, virgo: false}; // to let isFetching = { aquarius: false, capricorn: false, pisces: false };  // ← add pisces
 
         // Lazy load image
-        function lazyLoadImage(imgElement, src) {
-            if (!imgElement || !src) return;
-
-            // Tiny transparent placeholder to avoid layout shift & enable blur
-            const placeholder = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3C/svg%3E";
-            imgElement.src = placeholder;
-            imgElement.classList.add('img-placeholder');
-
-            const img = new Image();
-            img.onload = () => {
-                imgElement.src = src;
-                imgElement.classList.remove('img-placeholder');
-                imgElement.classList.add('img-loaded');
-            };
-            img.onerror = () => {
-                imgElement.src = "https://via.placeholder.com/300x300/cccccc/666666?text=Image+Not+Found";
-                imgElement.classList.remove('img-placeholder');
-                imgElement.classList.add('img-loaded');
-            };
-            img.src = src;
-        }
-
-        // Force-generate & prioritize image for a matching student (even if section not loaded)
-function ensureStudentCardAndLoad(studentName, sectionKey) {
-    const container = document.getElementById(`${sectionKey}-students`);
-    if (!container) return;
-
-    // If section hasn't been loaded yet, generate *all* its cards instantly (just once)
-    if (currentPage[sectionKey] === 0) {
-        generateStudentCards(sectionKey, `${sectionKey}-students`, 1, students[sectionKey].length);
-        currentPage[sectionKey] = 1;
-        isFetching[sectionKey] = true;
-        // Wait a tick for DOM to update
-        requestAnimationFrame(() => triggerImageLoadFor(studentName));
-    } else {
-        // Section already loaded — just find & prioritize image
-        triggerImageLoadFor(studentName);
+        function cancelImageLoad(src) {
+    const state = imageLoadState.get(src);
+    if (state && state.abortController) {
+        state.abortController.abort();
+        imageLoadState.delete(src);
     }
 }
 
-// Actually load image (bypass lazy placeholder) for a matching student by name
-function triggerImageLoadFor(studentName) {
-    const cards = document.querySelectorAll('.student-card');
-    for (const card of cards) {
-        const nameEl = card.querySelector('.student-name');
-        if (nameEl && nameEl.textContent === studentName) {
-            const imgEl = card.querySelector('.student-img');
-            const student = [...Object.values(students).flat()].find(s => s.name === studentName);
-            if (student && imgEl) {
-                // Prioritize: load image *now*, no blur, no placeholder
-                imgEl.classList.remove('img-placeholder');
-                imgEl.src = student.img;
-                break;
-            }
-        }
-    }
-}
+function lazyLoadImage(imgElement, src) {
+    if (!imgElement || !src) return;
 
+    // If already loaded (or failed), reuse
+    if (loadedImages.has(src)) {
+        imgElement.src = src;
+        imgElement.classList.remove('img-placeholder');
+        imgElement.classList.add('img-loaded');
+        return;
+    }
+
+    // Cancel any previous load for same src
+    cancelImageLoad(src);
+
+    // Tiny placeholder
+    const placeholder = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3C/svg%3E";
+    imgElement.src = placeholder;
+    imgElement.classList.add('img-placeholder');
+
+    const abortController = new AbortController();
+    imageLoadState.set(src, { abortController, element: imgElement });
+
+    const img = new Image();
+    img.onload = () => {
+        if (abortController.signal.aborted) return;
+        imgElement.src = src;
+        imgElement.classList.remove('img-placeholder');
+        imgElement.classList.add('img-loaded');
+        loadedImages.add(src);
+        imageLoadState.delete(src);
+    };
+    img.onerror = () => {
+        if (abortController.signal.aborted) return;
+        imgElement.src = "https://via.placeholder.com/300x300/cccccc/666666?text=Image+Not+Found";
+        imgElement.classList.remove('img-placeholder');
+        imgElement.classList.add('img-loaded');
+        imageLoadState.delete(src);
+    };
+
+    // Simulate fetch with signal (optional for real fetch-backed CDN)
+    // If you're using `fetch()` to pre-validate or proxy images, use:
+    // fetch(src, { signal: abortController.signal })
+    //   .then(r => img.src = src)
+    //   .catch(() => { /* handle */ });
+
+    img.src = src; // triggers load directly (no fetch needed if direct URL)
+}
         // Get all awards (individual + other) for a student
         function getAllAwards(studentName) {
             const awardsSet = new Set();
@@ -1396,62 +1397,50 @@ function triggerImageLoadFor(studentName) {
         }
 
         // Generate student cards
-        function generateStudentCards(section, containerId, page = 1, limit = ITEMS_PER_PAGE) {
-            const container = document.getElementById(containerId);
-            const startIndex = (page - 1) * limit;
-            const endIndex = startIndex + limit;
-            const studentsToShow = students[section].slice(startIndex, endIndex);
-
-            // Avoid re-adding cards if already loaded
-            if (container.children.length >= studentsToShow.length && page === 1) return;
-
-            studentsToShow.forEach(student => {
-                const card = document.createElement('div');
-                card.className = 'student-card fade-in';
-                card.innerHTML = `
-                    <img alt="${student.name}" class="student-img" loading="lazy">
-                    <div class="student-info">
-                        <h3 class="student-name">${student.name}</h3>
-                    </div>
-                `;
-                const imgElement = card.querySelector('.student-img');
-                lazyLoadImage(imgElement, student.img);
-                card.addEventListener('click', () => openStudentModal(student, student.img));
-                container.appendChild(card);
-            });
-
-            // Mark if fully loaded
-            if (endIndex >= students[section].length) {
-                isFetching[section] = true;
+        // Global observer for student cards
+const studentCardObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const card = entry.target;
+            const imgElement = card.querySelector('.student-img, .teacher-img, .speech-img, .memory-img');
+            const src = card.dataset.src;
+            if (imgElement && src && !card.classList.contains('loaded')) {
+                lazyLoadImage(imgElement, src);
+                card.classList.add('loaded');
             }
         }
+    });
+}, {
+    rootMargin: '100px', // preload 100px before entering view
+    threshold: 0.1
+});
 
-        function setupSectionObservers() {
-            const sectionIds = [
-                'aries', 'capricorn', 'gemini', 'leo',
-                'libra', 'saguitarius', 'taurus', 'virgo'
-            ];
 
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const sectionName = entry.target.id.replace('-title', '');
-                        if (currentPage[sectionName] === 0) { // not loaded yet
-                            generateStudentCards(sectionName, `${sectionName}-students`, 1, ITEMS_PER_PAGE);
-                            currentPage[sectionName] = 1;
-                        }
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.1 });
+function generateStudentCards(section, containerId, page = 1) {
+    const container = document.getElementById(containerId);
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const studentsToShow = students[section].slice(startIndex, endIndex);
 
-            // Observe each section title (e.g., #aries-title)
-            sectionIds.forEach(id => {
-                const titleEl = document.getElementById(`${id}-title`);
-                if (titleEl) observer.observe(titleEl);
-            });
-        }
+    studentsToShow.forEach(student => {
+        const card = document.createElement('div');
+        card.className = 'student-card fade-in';
+        card.dataset.src = student.img; // ← store src, don’t load yet
+        card.innerHTML = `
+            <img alt="${student.name}" class="student-img img-placeholder" loading="lazy">
+            <div class="student-info">
+                <h3 class="student-name">${student.name}</h3>
+            </div>
+        `;
+        card.addEventListener('click', () => openStudentModal(student, student.img));
+        container.appendChild(card);
+        studentCardObserver.observe(card); // ← observe for visibility
+    });
 
+    if (endIndex >= students[section].length) {
+        isFetching[section] = true;
+    }
+}
         // Generate teachers
         function generateTeachers() {
             const container = document.getElementById('teachers-grid');
@@ -1681,92 +1670,125 @@ function openTeacherModal(teacher, imgSrc) {
             });
         });
 
-       // Enhanced Search: Prioritize loading images for matches
+        // Search
+      
         searchInput.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase().trim();
+    const term = e.target.value.toLowerCase().trim();
 
-            // Reset UI
-            document.querySelectorAll('.section-title').forEach(t => {
-                t.classList.remove('highlight');
-                t.style.display = 'block';
+    // 🔴 Cancel ALL pending image loads before re-filtering
+    imageLoadState.forEach((_, src) => cancelImageLoad(src));
+
+    // Reset UI: show all titles & cards first
+    document.querySelectorAll('.section-title').forEach(t => {
+        t.classList.remove('highlight');
+        t.style.display = 'block';
+    });
+    document.querySelectorAll('.student-card, .teacher-card').forEach(c => {
+        c.style.display = 'block';
+    });
+
+    // ✅ Hide empty grids early
+    document.querySelectorAll('.students-grid').forEach(grid => {
+        grid.style.display = 'grid';
+    });
+
+    // Early exit if empty search
+    if (term === '') return;
+
+    // Section-to-container mapping (extensible)
+    const sectionMap = {
+        aquarius: { titleId: 'aquarius-title', containerId: 'aquarius-students' },
+        aries: { titleId: 'aries-title', containerId: 'aries-students' },
+        capricorn: { titleId: 'capricorn-title', containerId: 'capricorn-students' },
+        gemini: { titleId: 'gemini-title', containerId: 'gemini-students' },
+        leo: { titleId: 'leo-title', containerId: 'leo-students' },
+        libra: { titleId: 'libra-title', containerId: 'libra-students' },
+        saguitarius: { titleId: 'saguitarius-title', containerId: 'saguitarius-students' },
+        taurus: { titleId: 'taurus-title', containerId: 'taurus-students' },
+        virgo: { titleId: 'virgo-title', containerId: 'virgo-students' }
+    };
+
+    // Gather all students with section context
+    const allStudents = [];
+    for (const [sectionKey, data] of Object.entries(sectionMap)) {
+        const list = students[sectionKey] || [];
+        list.forEach(student => allStudents.push({ ...student, section: sectionKey }));
+    }
+
+    // Find matches by name
+    const matchingStudents = allStudents.filter(s =>
+        s.name.toLowerCase().includes(term)
+    );
+
+    // Sections with matches (student or section name)
+    const sectionsWithMatches = new Set(matchingStudents.map(s => s.section));
+
+    // Check for section-name matches (e.g., "leo" in "Leo Section")
+    for (const [key, { titleId }] of Object.entries(sectionMap)) {
+        const titleEl = document.getElementById(titleId);
+        const titleText = titleEl ? titleEl.textContent.toLowerCase() : '';
+        if (key.includes(term) || titleText.includes(term)) {
+            sectionsWithMatches.add(key);
+            titleEl.classList.add('highlight');
+        }
+    }
+
+    // Hide irrelevant sections & cards
+    for (const [key, { titleId, containerId }] of Object.entries(sectionMap)) {
+        const titleEl = document.getElementById(titleId);
+        const containerEl = document.getElementById(containerId);
+        if (sectionsWithMatches.has(key)) {
+            titleEl.style.display = 'block';
+            const sectionNameMatched = key.includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term));
+
+            if (sectionNameMatched) {
+                // Show all students in this section
+                containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'block');
+            } else {
+                // Show only matching students
+                containerEl.querySelectorAll('.student-card').forEach(card => {
+                    const nameEl = card.querySelector('.student-name');
+                    const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+                    card.style.display = name.includes(term) ? 'block' : 'none';
+                });
+            }
+        } else {
+            // 🔴 Hide entire section + cancel image loads for all its cards
+            titleEl.style.display = 'none';
+            containerEl.querySelectorAll('.student-card').forEach(card => {
+                card.style.display = 'none';
+                const img = card.querySelector('.student-img');
+                if (img && img.src && !img.src.startsWith('data:') && !loadedImages.has(img.src)) {
+                    cancelImageLoad(card.dataset.src || img.src);
+                }
             });
-            document.querySelectorAll('.student-card, .teacher-card').forEach(c => c.style.display = 'block');
+        }
+    }
 
-            if (term === '') return;
+    // Hide empty grids
+    document.querySelectorAll('.students-grid').forEach(grid => {
+        const hasVisible = Array.from(grid.children).some(card =>
+            card.style.display !== 'none'
+        );
+        grid.style.display = hasVisible ? 'grid' : 'none';
+    });
 
-            // Section mapping
-            const sectionMap = {
-                aquarius: { titleId: 'aquarius-title', containerId: 'aquarius-students' },
-                aries: { titleId: 'aries-title', containerId: 'aries-students' },
-                capricorn: { titleId: 'capricorn-title', containerId: 'capricorn-students' },
-                gemini: { titleId: 'gemini-title', containerId: 'gemini-students' },
-                leo: { titleId: 'leo-title', containerId: 'leo-students' },
-                libra: { titleId: 'libra-title', containerId: 'libra-students' },
-                saguitarius: { titleId: 'saguitarius-title', containerId: 'saguitarius-students' },
-                taurus: { titleId: 'taurus-title', containerId: 'taurus-students' },
-                virgo: { titleId: 'virgo-title', containerId: 'virgo-students' }
-            };
+    // Optional: Re-observe newly visible cards (if using IntersectionObserver)
+    // Force re-observe visible cards to trigger load if needed
+    document.querySelectorAll('.student-card:not(.loaded)').forEach(card => {
+        if (card.style.display !== 'none') {
+            const observer = studentCardObserver;
+            observer.unobserve(card);
+            observer.observe(card);
+        }
+    });
 
-            // Step 1: Find ALL matching students globally (even in unloaded sections)
-            const matchingStudents = [];
-            for (const [sectionKey, studentList] of Object.entries(students)) {
-                for (const student of studentList) {
-                    if (student.name.toLowerCase().includes(term)) {
-                        matchingStudents.push({ ...student, section: sectionKey });
-                    }
-                }
-            }
-
-            // Step 2: Ensure their cards exist & prioritize image loading
-            matchingStudents.forEach(s => ensureStudentCardAndLoad(s.name, s.section));
-
-            // Step 3: UI filtering (hide non-matching)
-            const sectionsWithMatches = new Set(matchingStudents.map(s => s.section));
-
-            // Section name match?
-            let sectionNameMatch = false;
-            for (const [key, { titleId }] of Object.entries(sectionMap)) {
-                const titleEl = document.getElementById(titleId);
-                if (key.includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term))) {
-                    sectionsWithMatches.add(key);
-                    if (titleEl) titleEl.classList.add('highlight');
-                    sectionNameMatch = true;
-                }
-            }
-
-            // Hide/show sections & cards
-            for (const [key, { titleId, containerId }] of Object.entries(sectionMap)) {
-                const titleEl = document.getElementById(titleId);
-                const containerEl = document.getElementById(containerId);
-                if (sectionsWithMatches.has(key)) {
-                    titleEl.style.display = 'block';
-                    if (sectionNameMatch && key.toLowerCase().includes(term)) {
-                        // Show all in section if section name matched
-                        containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'block');
-                    } else {
-                        // Show only matching students
-                        containerEl.querySelectorAll('.student-card').forEach(card => {
-                            const name = card.querySelector('.student-name')?.textContent.toLowerCase() || '';
-                            card.style.display = name.includes(term) ? 'block' : 'none';
-                        });
-                    }
-                } else {
-                    titleEl.style.display = 'none';
-                    containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'none');
-                }
-            }
-
-            // Hide empty grids
-            document.querySelectorAll('.students-grid').forEach(grid => {
-                grid.style.display = Array.from(grid.children).some(c => c.style.display !== 'none') ? 'grid' : 'none';
-            });
-
-            // Scroll to first match
-            const firstMatch = document.querySelector('.student-card[style*="block"]');
-            if (firstMatch) {
-                firstMatch.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        });
+    // Smooth scroll to first match
+    const firstVisible = document.querySelector('.section-title:not([style*="display: none"])');
+    if (firstVisible) {
+        firstVisible.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+});
 
 
         // Scroll to top
@@ -1817,10 +1839,19 @@ function openTeacherModal(teacher, imgSrc) {
         document.addEventListener('DOMContentLoaded', () => {
             loading.style.display = 'block';
             setTimeout(() => {
-                // ✅ ONLY load first ~12 cards of FIRST section (Aquarius)
-                generateStudentCards('aquarius', 'aquarius-students', 1, 1000); // ← add limit param
 
-                // ✅ DO NOT generate other sections yet
+                // ✅ ADD NEW SECTION HERE 
+                generateStudentCards('aquarius', 'aquarius-students', 1);
+                generateStudentCards('aries', 'aries-students', 1);
+                generateStudentCards('capricorn', 'capricorn-students', 1);
+                generateStudentCards('gemini', 'gemini-students', 1);
+                generateStudentCards('leo', 'leo-students', 1);
+                generateStudentCards('libra', 'libra-students', 1);
+                generateStudentCards('saguitarius', 'saguitarius-students', 1);
+                generateStudentCards('taurus', 'taurus-students', 1);
+                generateStudentCards('virgo', 'virgo-students', 1);
+                // generateStudentCards('pisces', 'pisces-students', 1);  // ✅ add this
+
                 generateTeachers();
                 generateIndividualAchievements();
                 generateOtherAwards();
@@ -1829,16 +1860,20 @@ function openTeacherModal(teacher, imgSrc) {
                 generateLyrics();
                 loading.style.display = 'none';
 
+                 // ✅ ADD NEW SECTION HERE
                 currentPage.aquarius = 1;
-                // Mark others as *unloaded*, not just "not fetching"
-                ['aries', 'capricorn', 'gemini', 'leo', 'libra', 'saguitarius', 'taurus', 'virgo'].forEach(s => {
-                    isFetching[s] = false;
-                    currentPage[s] = 0; // 0 = not generated yet
-                });
+                currentPage.aries = 1;
+                currentPage.capricorn = 1;
+                currentPage.gemini = 1;
+                currentPage.leo = 1;
+                currentPage.libra = 1;
+                currentPage.saguitarius = 1;
+                currentPage.taurus = 1;
+                currentPage.virgo = 1;
+                // currentPage.pisces = 1;  // ✅
 
-                // ✅ Set up Intersection Observer for on-demand section loading
-                setupSectionObservers();
-            }, 500); // reduce delay for perceived speed
+                document.querySelectorAll('.section').forEach(s => s.classList.add('fade-in'));
+            }, 1000);
         });
 
         // Keyboard support
