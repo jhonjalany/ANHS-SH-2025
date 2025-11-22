@@ -1263,35 +1263,49 @@ Graduates of 2025, we all belong.`; // as before
 
         // ✅ LIFECYCLE: Lazy load a batch of cards for a section
         function renderSectionBatch(sectionId, count = ITEMS_PER_PAGE) {
-            const container = document.getElementById(`${sectionId}-students`);
-            const startIndex = lazyState[sectionId].rendered;
-            const endIndex = Math.min(startIndex + count, students[sectionId].length);
-            const toRender = students[sectionId].slice(startIndex, endIndex);
+    const container = document.getElementById(`${sectionId}-students`);
+    if (!container) return;
 
-            toRender.forEach(student => {
-                const card = document.createElement('div');
-                card.className = 'student-card';
-                card.dataset.name = student.name;
-                card.dataset.section = sectionId;
-                card.innerHTML = `
-                    <div class="skeleton"></div>
-                    <div class="student-info">
-                        <h3 class="student-name">${student.name}</h3>
-                    </div>
-                `;
-                card.addEventListener('click', () => openStudentModal(student, student.img));
-                container.appendChild(card);
-                // Set up image load via observer
-                lazyState[sectionId].rendered++;
-            });
+    const state = lazyState[sectionId];
+    if (state.fetching || state.rendered >= students[sectionId].length) return;
 
-            // Observe just-added cards
-            observeCards(toRender.map((s, i) => container.children[startIndex + i]));
+    const startIndex = state.rendered;
+    const endIndex = Math.min(startIndex + count, students[sectionId].length);
+    const toRender = students[sectionId].slice(startIndex, endIndex);
 
-            if (lazyState[sectionId].rendered >= students[sectionId].length) {
-                lazyState[sectionId].fetching = true;
-            }
-        }
+    toRender.forEach((student, idx) => {
+        const card = document.createElement('div');
+        card.className = 'student-card';
+        card.dataset.name = student.name;
+        card.dataset.section = sectionId;
+        card.dataset.index = startIndex + idx; // for safe lookup
+        card.innerHTML = `
+            <div class="skeleton"></div>
+            <div class="student-info">
+                <h3 class="student-name">${escapeHtml(student.name)}</h3>
+            </div>
+        `;
+        card.addEventListener('click', () => openStudentModal(student, student.img));
+        container.appendChild(card);
+    });
+
+    state.rendered = endIndex;
+    if (state.rendered >= students[sectionId].length) {
+        state.fetching = true;
+    }
+
+    // Observe newly added cards
+    const newCards = Array.from(container.children).slice(startIndex, endIndex);
+    observeCards(newCards);
+}
+
+// Helper to prevent XSS (minor, but good practice)
+function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;',
+        '"': '&quot;', "'": '&#39;'
+    }[tag]));
+}
 
         // ✅ INTERSECTION OBSERVER — lazy-load image WHEN card is visible
         const imageObserver = new IntersectionObserver((entries) => {
@@ -1323,25 +1337,34 @@ Graduates of 2025, we all belong.`; // as before
 
         // ✅ LAZY LOAD IMAGE (same, but with error fallback)
         function lazyLoadImage(imgElement, src) {
-            if (!imgElement || !src) return;
-            const placeholder = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3C/svg%3E";
-            imgElement.src = placeholder;
-            imgElement.classList.add('img-placeholder');
-            const img = new Image();
-            img.onload = () => {
-                imgElement.src = src;
-                imgElement.classList.remove('img-placeholder');
-                imgElement.classList.add('img-loaded');
-                imgElement.closest('.student-card')?.classList.add('visible');
-            };
-            img.onerror = () => {
-                imgElement.src = "https://via.placeholder.com/300x300/cccccc/666666?text=Image+Not+Found";
-                imgElement.classList.remove('img-placeholder');
-                imgElement.classList.add('img-loaded');
-                imgElement.closest('.student-card')?.classList.add('visible');
-            };
-            img.src = src;
-        }
+    if (!imgElement || !src) {
+        imgElement?.setAttribute('src', 'https://via.placeholder.com/300x300/e0e0e0/999999?text=No+Image');
+        imgElement?.classList.remove('img-placeholder');
+        imgElement?.classList.add('img-loaded');
+        return;
+    }
+
+    const placeholder = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' fill='%23999999' font-size='14' text-anchor='middle' dominant-baseline='middle'>Loading...%3C/text%3E%3C/svg%3E";
+    imgElement.src = placeholder;
+    imgElement.classList.add('img-placeholder');
+
+    const img = new Image();
+    img.onload = () => {
+        imgElement.src = src;
+        imgElement.classList.remove('img-placeholder');
+        imgElement.classList.add('img-loaded');
+        const card = imgElement.closest('.student-card, .teacher-card, .speech-card, .modal-header');
+        if (card) card.classList.add('visible');
+    };
+    img.onerror = () => {
+        imgElement.src = 'https://via.placeholder.com/300x300/e0e0e0/999999?text=Image+Failed';
+        imgElement.classList.remove('img-placeholder');
+        imgElement.classList.add('img-loaded');
+        const card = imgElement.closest('.student-card, .teacher-card');
+        if (card) card.classList.add('visible');
+    };
+    img.src = src;
+}
 
         // ✅ GET ALL AWARDS (unchanged)
         function getAllAwards(studentName) {
@@ -1388,91 +1411,123 @@ Graduates of 2025, we all belong.`; // as before
         });
 
         function filterStudents(term) {
-            // Hide all first
-            document.querySelectorAll('.section-title').forEach(t => {
-                t.classList.remove('highlight');
-                t.style.display = 'block';
-            });
-            document.querySelectorAll('.student-card').forEach(c => {
-                c.style.display = 'none';
-                c.classList.remove('visible');
-            });
+    // Reset UI
+    document.querySelectorAll('.section-title').forEach(t => {
+        t.classList.remove('highlight');
+        t.style.display = 'block';
+    });
+    document.querySelectorAll('.student-card').forEach(c => {
+        c.style.display = 'none';
+        c.classList.remove('visible');
+    });
 
-            if (!term) {
-                // Show all visible sections
-                document.querySelectorAll('.students-grid').forEach(grid => {
-                    grid.style.display = 'grid';
-                    const cards = grid.querySelectorAll('.student-card');
-                    cards.forEach(c => {
-                        c.style.display = 'block';
-                        if (c.dataset.imgLoaded === 'true') c.classList.add('visible');
-                    });
-                });
-                return;
+    // Show all if empty
+    if (!term.trim()) {
+        document.querySelectorAll('.students-grid').forEach(grid => grid.style.display = 'grid');
+        document.querySelectorAll('.student-card').forEach(c => {
+            c.style.display = 'block';
+            if (c.dataset.imgLoaded === 'true') c.classList.add('visible');
+        });
+        scrollLoader.style.display = 'none';
+        return;
+    }
+
+    const termNormalized = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // accent-insensitive
+
+    // Map section keys to title IDs
+    const sectionMap = {
+        aquarius: 'aquarius-title', aries: 'aries-title', capricorn: 'capricorn-title',
+        gemini: 'gemini-title', leo: 'leo-title', libra: 'libra-title',
+        saguitarius: 'saguitarius-title', taurus: 'taurus-title', virgo: 'virgo-title'
+    };
+
+    const sectionsWithMatches = new Set();
+    let totalMatches = 0;
+
+    // ✅ Pre-render ALL sections fully if search term is present (simple fix; alternatively, smart-load only matched sections)
+    // For performance, we *could* only render matched sections, but for correctness & simplicity, let’s ensure all students exist in DOM first.
+    sectionNames.forEach(section => {
+        const state = lazyState[section];
+        if (state.rendered < students[section].length && !state.fetching) {
+            const remaining = students[section].length - state.rendered;
+            renderSectionBatch(section, remaining);
+        }
+    });
+
+    // Wait a tick for DOM to update before filtering
+    setTimeout(() => {
+        // Match section names first
+        Object.entries(sectionMap).forEach(([key, titleId]) => {
+            const titleEl = document.getElementById(titleId);
+            if (!titleEl) return;
+            const sectionLabel = titleEl.textContent.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if (key.includes(termNormalized) || sectionLabel.includes(termNormalized)) {
+                sectionsWithMatches.add(key);
+                titleEl.classList.add('highlight');
             }
+        });
 
-            const sectionMap = {
-                aquarius: 'aquarius-title', aries: 'aries-title', capricorn: 'capricorn-title',
-                gemini: 'gemini-title', leo: 'leo-title', libra: 'libra-title',
-                saguitarius: 'saguitarius-title', taurus: 'taurus-title', virgo: 'virgo-title'
-            };
+        // Match student names
+        sectionNames.forEach(section => {
+            const sectionStudents = students[section] || [];
+            const container = document.getElementById(`${section}-students`);
+            if (!container) return;
 
-            const sectionsWithMatches = new Set();
-
-            // Match sections by name
-            Object.entries(sectionMap).forEach(([key, titleId]) => {
-                const titleEl = document.getElementById(titleId);
-                if (key.includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term))) {
-                    sectionsWithMatches.add(key);
-                    titleEl.classList.add('highlight');
-                }
-            });
-
-            // Match students by name
-            let matchCount = 0;
-            sectionNames.forEach(section => {
-                const sectionStudents = students[section] || [];
-                const container = document.getElementById(`${section}-students`);
-                const cards = container.querySelectorAll('.student-card');
-
-                cards.forEach((card, idx) => {
-                    const name = sectionStudents[idx]?.name.toLowerCase() || '';
-                    if (name.includes(term)) {
-                        card.style.display = 'block';
-                        sectionsWithMatches.add(section);
-                        matchCount++;
-                        // Ensure image loads if not yet
-                        if (card.dataset.imgLoaded !== 'true') {
-                            const student = sectionStudents[idx];
-                            const imgPlaceholder = card.querySelector('.skeleton');
-                            if (imgPlaceholder) {
-                                const imgEl = document.createElement('img');
-                                imgEl.className = 'student-img img-placeholder';
-                                imgEl.alt = student.name;
-                                card.insertBefore(imgEl, imgPlaceholder);
-                                card.removeChild(imgPlaceholder);
-                                lazyLoadImage(imgEl, student.img);
-                                card.dataset.imgLoaded = 'true';
-                            }
+            const cards = container.querySelectorAll('.student-card');
+            cards.forEach((card, idx) => {
+                if (idx >= sectionStudents.length) return; // safety
+                const studentName = sectionStudents[idx].name;
+                const normalizedStudent = studentName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                if (normalizedStudent.includes(termNormalized)) {
+                    card.style.display = 'block';
+                    sectionsWithMatches.add(section);
+                    totalMatches++;
+                    // Ensure image is loaded
+                    if (card.dataset.imgLoaded !== 'true') {
+                        const student = sectionStudents[idx];
+                        const imgPlaceholder = card.querySelector('.skeleton');
+                        if (imgPlaceholder) {
+                            const imgEl = document.createElement('img');
+                            imgEl.className = 'student-img img-placeholder';
+                            imgEl.alt = student.name;
+                            card.insertBefore(imgEl, imgPlaceholder);
+                            card.removeChild(imgPlaceholder);
+                            lazyLoadImage(imgEl, student.img);
+                            card.dataset.imgLoaded = 'true';
                         }
                     }
-                });
+                }
             });
+        });
 
-            // Show/hide sections
-            sectionNames.forEach(section => {
-                const titleEl = document.getElementById(`${section}-title`);
-                const container = document.getElementById(`${section}-students`);
-                const hasMatch = sectionsWithMatches.has(section);
-                titleEl.style.display = hasMatch ? 'block' : 'none';
-                container.style.display = hasMatch ? 'grid' : 'none';
-            });
+        // Show/hide sections
+        sectionNames.forEach(section => {
+            const titleEl = document.getElementById(`${section}-title`);
+            const container = document.getElementById(`${section}-students`);
+            const hasMatch = sectionsWithMatches.has(section);
+            if (titleEl) titleEl.style.display = hasMatch ? 'block' : 'none';
+            if (container) container.style.display = hasMatch ? 'grid' : 'none';
+        });
 
-            if (matchCount === 0) {
-                // Optionally show "no results" but we skip for now
-            }
-        }
+        // ✅ Show "No results" if needed
+        const noResultsMsg = document.getElementById('noResultsMsg') || (() => {
+            const el = document.createElement('div');
+            el.id = 'noResultsMsg';
+            el.style.textAlign = 'center';
+            el.style.padding = '2rem';
+            el.style.fontSize = '1.2rem';
+            el.style.color = 'var(--primary-color)';
+            el.style.display = 'none';
+            document.querySelector('#students-section').appendChild(el);
+            return el;
+        })();
+        noResultsMsg.textContent = `🔍 No students or sections match "${term}".`;
+        noResultsMsg.style.display = totalMatches === 0 ? 'block' : 'none';
 
+        // Hide scroll loader during search
+        scrollLoader.style.display = 'none';
+    }, 50); // small delay to allow DOM updates
+}
         // ✅ NAVIGATION (same)
         navLinks.forEach(link => {
             link.addEventListener('click', (e) => {
