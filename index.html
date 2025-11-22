@@ -1323,30 +1323,26 @@ Graduates of 2025, we all belong.`; // as before
 
         // ✅ LAZY LOAD IMAGE (same, but with error fallback)
         function lazyLoadImage(imgElement, src) {
-            if (!imgElement || !src || imgElement.dataset.loading === 'started') return;
-            
-            imgElement.dataset.loading = 'started';
+            if (!imgElement || !src) return;
             const placeholder = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3C/svg%3E";
             imgElement.src = placeholder;
             imgElement.classList.add('img-placeholder');
-
             const img = new Image();
             img.onload = () => {
                 imgElement.src = src;
                 imgElement.classList.remove('img-placeholder');
                 imgElement.classList.add('img-loaded');
                 imgElement.closest('.student-card')?.classList.add('visible');
-                delete imgElement.dataset.loading;
             };
             img.onerror = () => {
                 imgElement.src = "https://via.placeholder.com/300x300/cccccc/666666?text=Image+Not+Found";
                 imgElement.classList.remove('img-placeholder');
                 imgElement.classList.add('img-loaded');
                 imgElement.closest('.student-card')?.classList.add('visible');
-                delete imgElement.dataset.loading;
             };
             img.src = src;
-            }
+        }
+
         // ✅ GET ALL AWARDS (unchanged)
         function getAllAwards(studentName) {
             const awardsSet = new Set();
@@ -1441,32 +1437,25 @@ Graduates of 2025, we all belong.`; // as before
 
                 cards.forEach((card, idx) => {
                     const name = sectionStudents[idx]?.name.toLowerCase() || '';
-                    // Inside filterStudents(), when showing a matching card:
-                        if (name.includes(term)) {
+                    if (name.includes(term)) {
                         card.style.display = 'block';
                         sectionsWithMatches.add(section);
                         matchCount++;
-
-                        // 🔁 Ensure image is present & loaded — even if previously "loaded"
-                        const imgEl = card.querySelector('.student-img');
-                        const student = sectionStudents[idx];
-                        if (!imgEl && student) {
-                            // Rebuild image if missing
+                        // Ensure image loads if not yet
+                        if (card.dataset.imgLoaded !== 'true') {
+                            const student = sectionStudents[idx];
                             const imgPlaceholder = card.querySelector('.skeleton');
                             if (imgPlaceholder) {
-                            const newImg = document.createElement('img');
-                            newImg.className = 'student-img img-placeholder';
-                            newImg.alt = student.name;
-                            card.insertBefore(newImg, imgPlaceholder);
-                            card.removeChild(imgPlaceholder);
-                            lazyLoadImage(newImg, student.img);
-                            card.dataset.imgLoaded = 'true';
+                                const imgEl = document.createElement('img');
+                                imgEl.className = 'student-img img-placeholder';
+                                imgEl.alt = student.name;
+                                card.insertBefore(imgEl, imgPlaceholder);
+                                card.removeChild(imgPlaceholder);
+                                lazyLoadImage(imgEl, student.img);
+                                card.dataset.imgLoaded = 'true';
                             }
-                        } else if (imgEl && imgEl.src.includes('placeholder') && student) {
-                            // Retry if stuck on placeholder/error
-                            lazyLoadImage(imgEl, student.img);
                         }
-                        }
+                    }
                 });
             });
 
