@@ -1316,6 +1316,12 @@ Graduates of 2025, we all belong.
         const scrollLoader = document.getElementById('scrollLoader');
         const scrollToTopBtn = document.getElementById('scrollToTopBtn');
 
+
+        let isSectionLoaded = {
+        aquarius: false, aries: false, capricorn: false, gemini: false,
+        leo: false, libra: false, saguitarius: false, taurus: false, virgo: false
+        };
+
         // Pagination
         // ✅ ADD NEW SECTION HERE 
         const ITEMS_PER_PAGE = 1000;
@@ -1615,112 +1621,79 @@ function openTeacherModal(teacher, imgSrc) {
             });
         });
 
-        // Search
-       // Enhanced Search: Hide sections with no matches
+       // Debounced search function
+          let searchTimeout = null;
+
+// New utility: get matching students by name (case-insensitive)
+function getMatchingStudents(query) {
+  const matches = {};
+  if (!query) {
+    // Return empty to reset
+    return matches;
+  }
+  for (const [section, list] of Object.entries(students)) {
+    const matched = list.filter(s => s.name.toLowerCase().includes(query));
+    if (matched.length > 0) matches[section] = matched;
+  }
+  return matches;
+}
+
 searchInput.addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase().trim();
+  clearTimeout(searchTimeout);
+  const term = e.target.value.trim().toLowerCase();
 
-    // Reset: Show all section titles and cards initially
+  searchTimeout = setTimeout(() => {
+    const matches = getMatchingStudents(term);
+
+    // Reset visibility of all section titles
     document.querySelectorAll('.section-title').forEach(t => {
-        t.classList.remove('highlight');
-        t.style.display = 'block';
+      t.classList.remove('highlight');
+      t.style.display = 'block';
     });
-    document.querySelectorAll('.student-card, .teacher-card').forEach(c => c.style.display = 'block');
 
-    // If search is empty, stop here
-    if (term === '') return;
+    // Hide/show sections based on matches
+    for (const sectionKey in students) {
+      const titleEl = document.getElementById(`${sectionKey}-title`);
+      const containerEl = document.getElementById(`${sectionKey}-students`);
 
-    // Section-to-container mapping (for extensibility)
-    const sectionMap = {
-        aquarius: { titleId: 'aquarius-title', containerId: 'aquarius-students' },
-        aries: { titleId: 'aries-title', containerId: 'aries-students' },
-        capricorn: { titleId: 'capricorn-title', containerId: 'capricorn-students' },
-        gemini: { titleId: 'gemini-title', containerId: 'gemini-students' },
-        leo: { titleId: 'leo-title', containerId: 'leo-students' },
-        libra: { titleId: 'libra-title', containerId: 'libra-students' },
-        saguitarius: { titleId: 'saguitarius-title', containerId: 'saguitarius-students' },
-        taurus: { titleId: 'taurus-title', containerId: 'taurus-students' },
-        virgo: { titleId: 'virgo-title', containerId: 'virgo-students' }
-        // ✅ Add new sections here as needed, e.g.:
-        // pisces: { titleId: 'pisces-title', containerId: 'pisces-students' }
-    };
-
-    // First pass: check for section name match
-    let sectionMatchFound = false;
-    for (const [key, { titleId, containerId }] of Object.entries(sectionMap)) {
-        const titleEl = document.getElementById(titleId);
-        if (key.toLowerCase().includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term))) {
-            titleEl.classList.add('highlight');
-            sectionMatchFound = true;
+      if (matches[sectionKey]) {
+        // Show title + render only matched cards
+        titleEl.style.display = 'block';
+        if (term && sectionKey.toLowerCase().includes(term)) {
+          titleEl.classList.add('highlight');
         }
-    }
 
-    // Gather all student names across sections (with section association)
-    const allStudents = [];
-    for (const [sectionKey, data] of Object.entries(sectionMap)) {
-        const studentsInSection = students[sectionKey] || [];
-        studentsInSection.forEach(student => {
-            allStudents.push({ ...student, section: sectionKey });
+        // Efficient re-render: clear + append only matches
+        const frag = document.createDocumentFragment();
+        matches[sectionKey].forEach(student => {
+          const card = document.createElement('div');
+          card.className = 'student-card fade-in';
+          card.innerHTML = `
+            <img alt="${student.name}" class="student-img" loading="lazy">
+            <div class="student-info"><h3 class="student-name">${student.name}</h3></div>
+          `;
+          lazyLoadImage(card.querySelector('.student-img'), student.img);
+          card.addEventListener('click', () => openStudentModal(student, student.img));
+          frag.appendChild(card);
         });
+
+        containerEl.innerHTML = ''; // Clear previous results
+        containerEl.appendChild(frag);
+        containerEl.style.display = 'grid';
+      } else {
+        // Hide section
+        titleEl.style.display = 'none';
+        containerEl.style.display = 'none';
+      }
     }
 
-    // Find matching students
-    const matchingStudents = allStudents.filter(s =>
-        s.name.toLowerCase().includes(term)
-    );
-
-    // Build set of sections that have matches (either by name or student)
-    const sectionsWithMatches = new Set(matchingStudents.map(s => s.section));
-    if (sectionMatchFound) {
-        // If section name matched, show *all* students in that section
-        for (const [key, { titleId }] of Object.entries(sectionMap)) {
-            const titleEl = document.getElementById(titleId);
-            if (key.toLowerCase().includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term))) {
-                sectionsWithMatches.add(key);
-            }
-        }
+    // Optional: scroll to first match
+    const firstVisible = document.querySelector('.section-title:not([style*="none"])');
+    if (firstVisible && term) {
+      firstVisible.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
-    // Hide sections *without* matches
-    for (const [key, { titleId, containerId }] of Object.entries(sectionMap)) {
-        const titleEl = document.getElementById(titleId);
-        const containerEl = document.getElementById(containerId);
-        if (sectionsWithMatches.has(key)) {
-            titleEl.style.display = 'block';
-            // If section name matched (not just student), show *all* its students
-            const sectionNameMatched = key.toLowerCase().includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term));
-            if (sectionNameMatched) {
-                containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'block');
-            } else {
-                // Otherwise, show only matching students in this section
-                containerEl.querySelectorAll('.student-card').forEach(card => {
-                    const nameEl = card.querySelector('.student-name');
-                    const name = nameEl ? nameEl.textContent.toLowerCase() : '';
-                    card.style.display = name.includes(term) ? 'block' : 'none';
-                });
-            }
-        } else {
-            // Hide entire section
-            titleEl.style.display = 'none';
-            containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'none');
-        }
-    }
-    // After hiding cards & titles, also hide student-grid containers if empty
-document.querySelectorAll('.students-grid').forEach(grid => {
-    const visibleCards = Array.from(grid.children).some(card => 
-        card.style.display !== 'none'
-    );
-    grid.style.display = visibleCards ? 'grid' : 'none';
+  }, 300); // 300ms debounce (faster than 1500ms)
 });
-
-    // Optional: smooth scroll to first visible section if any
-    const firstVisibleTitle = document.querySelector('.section-title:not([style*="display: none"])');
-    if (firstVisibleTitle) {
-        firstVisibleTitle.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
-    }
-});
-
-
 
         // Scroll to top
         window.addEventListener('scroll', () => {
@@ -1730,82 +1703,86 @@ document.querySelectorAll('.students-grid').forEach(grid => {
  
         // Infinite scroll
         let isScrolling = false;
-        function handleScroll() {
-        if (isScrolling) return;
-        const studentsSection = document.getElementById('students-section');
-        const rect = studentsSection.getBoundingClientRect();
-        if (rect.top > window.innerHeight || rect.bottom < 0) return;
-
-        // ✅ Add new section name to this list
-        const sectionNames = ['aquarius', 'aries','capricorn', 'gemini', 'leo', 'libra', 'saguitarius', 'taurus', 'virgo'];  // to const sectionNames = ['aquarius', 'capricorn', 'pisces'];  // ← updated list
-        let targetSection = null;
-
-        for (const name of sectionNames) {
-            if (!isFetching[name]) {
-            const container = document.getElementById(`${name}-students`);
-            const containerRect = container.getBoundingClientRect();
-            if (containerRect.bottom <= window.innerHeight + 200) {
-                // scrolled near bottom of this section
-                targetSection = name;
-                break;
-            }
-            }
-        }
-
-        if (!targetSection || isFetching[targetSection]) return;
-
-        isScrolling = true;
-        scrollLoader.classList.add('show');
-        setTimeout(() => {
-            currentPage[targetSection]++;
-            generateStudentCards(targetSection, `${targetSection}-students`, currentPage[targetSection]);
-            scrollLoader.classList.remove('show');
-            isScrolling = false;
-        }, 800);
-        }
         
+        let scrollThrottle = false;
+
+function handleScroll() {
+  if (scrollThrottle || window.location.hash.includes('achievements')) return;
+
+  const studentsSection = document.getElementById('students-section');
+  if (!studentsSection || studentsSection.style.display === 'none') return;
+
+  // Only process if near bottom of viewport AND inside Students section
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+    const sectionNames = Object.keys(students);
+    let loadedSection = null;
+
+    for (const name of sectionNames) {
+      const container = document.getElementById(`${name}-students`);
+      if (container && isSectionLoaded[name] && !isFetching[name]) {
+        const rect = container.getBoundingClientRect();
+        if (rect.bottom > 0 && rect.top < window.innerHeight) {
+          loadedSection = name;
+          break;
+        }
+      }
+    }
+
+    if (loadedSection && !isFetching[loadedSection]) {
+      scrollThrottle = true;
+      scrollLoader.classList.add('show');
+
+      requestIdleCallback(() => {
+        currentPage[loadedSection]++;
+        generateStudentCards(loadedSection, `${loadedSection}-students`, currentPage[loadedSection]);
+        scrollLoader.classList.remove('show');
+        scrollThrottle = false;
+      }, { timeout: 1000 });
+    }
+  }
+}
+
+window.addEventListener('scroll', () => {
+  if (!scrollThrottle) requestAnimationFrame(handleScroll);
+});
+
         window.addEventListener('scroll', handleScroll);
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            loading.style.display = 'block';
-            setTimeout(() => {
+        
 
-                // ✅ ADD NEW SECTION HERE 
-                generateStudentCards('aquarius', 'aquarius-students', 1);
-                generateStudentCards('aries', 'aries-students', 1);
-                generateStudentCards('capricorn', 'capricorn-students', 1);
-                generateStudentCards('gemini', 'gemini-students', 1);
-                generateStudentCards('leo', 'leo-students', 1);
-                generateStudentCards('libra', 'libra-students', 1);
-                generateStudentCards('saguitarius', 'saguitarius-students', 1);
-                generateStudentCards('taurus', 'taurus-students', 1);
-                generateStudentCards('virgo', 'virgo-students', 1);
-                // generateStudentCards('pisces', 'pisces-students', 1);  // ✅ add this
+// Replace current DOMContentLoaded init with:
+document.addEventListener('DOMContentLoaded', () => {
+  loading.style.display = 'block';
+  setTimeout(() => {
+    // Only generate teachers & static content
+    generateTeachers();
+    generateIndividualAchievements();
+    generateOtherAwards();
+    generateSpeeches();
+    generateMemories();
+    generateLyrics();
+    loading.style.display = 'none';
 
-                generateTeachers();
-                generateIndividualAchievements();
-                generateOtherAwards();
-                generateSpeeches();
-                generateMemories();
-                generateLyrics();
-                loading.style.display = 'none';
+    // Observe section titles for lazy rendering
+    const sectionTitles = Array.from(document.querySelectorAll('.section-title'));
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const titleId = entry.target.id;
+          const sectionKey = titleId.replace(/-title$/, ''); // e.g., "aquarius-title" → "aquarius"
+          if (!isSectionLoaded[sectionKey] && students[sectionKey]) {
+            isSectionLoaded[sectionKey] = true;
+            generateStudentCards(sectionKey, `${sectionKey}-students`, 1);
+            currentPage[sectionKey] = 1;
+            isFetching[sectionKey] = false;
+          }
+        }
+      });
+    }, { rootMargin: '200px' }); // load early
 
-                 // ✅ ADD NEW SECTION HERE
-                currentPage.aquarius = 1;
-                currentPage.aries = 1;
-                currentPage.capricorn = 1;
-                currentPage.gemini = 1;
-                currentPage.leo = 1;
-                currentPage.libra = 1;
-                currentPage.saguitarius = 1;
-                currentPage.taurus = 1;
-                currentPage.virgo = 1;
-                // currentPage.pisces = 1;  // ✅
-
-                document.querySelectorAll('.section').forEach(s => s.classList.add('fade-in'));
-            }, 1000);
-        });
+    sectionTitles.forEach(title => observer.observe(title));
+  }, 300);
+});
 
         // Keyboard support
         document.addEventListener('keydown', (e) => {
