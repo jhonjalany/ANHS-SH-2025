@@ -165,13 +165,6 @@
             transition: var(--transition);
             cursor: pointer;
             position: relative;
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        .student-card.visible, .teacher-card.visible {
-            opacity: 1;
-            transform: translateY(0);
-            transition: opacity 0.5s ease, transform 0.5s ease;
         }
         .student-card:hover, .teacher-card:hover {
             transform: translateY(-5px);
@@ -382,6 +375,7 @@
             transform: scale(1.05);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
         }
+
         .lyrics-content {
             background: white;
             padding: 2rem;
@@ -422,6 +416,7 @@
             padding: 0.8rem 1.5rem;
             border-radius: 25px;
             font-weight: 600;
+            
             cursor: pointer;
             transition: var(--transition);
         }
@@ -485,6 +480,8 @@
             transform: translateY(-3px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
+
+        /* Blurred placeholder while loading */
         .img-placeholder {
             filter: blur(8px);
             transition: filter 0.3s ease, opacity 0.3s ease;
@@ -492,29 +489,76 @@
         .img-loaded {
             filter: blur(0);
         }
+
         .student-img, .teacher-img, .modal-img, .speech-img, .memory-img {
             will-change: filter;
         }
         @media (max-width: 768px) {
-            .title { font-size: 1.5rem; }
-            .header-container { flex-direction: column; gap: 1rem; }
-            .search-container { width: 100%; }
-            .nav-container { flex-wrap: wrap; gap: 0.5rem; }
-            .students-grid, .teachers-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
-            .student-img, .teacher-img { height: 300px; }
-            .modal-img { width: 150px; height: 150px; }
-            .speech-header { flex-direction: column; text-align: center; }
-            .speech-img { margin-bottom: 1rem; }
-            .memories-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-            .memory-img { height: 150px; }
-            #scrollToTopBtn { bottom: 20px; right: 20px; width: 45px; height: 45px; }
-            .recipient { font-size: 10px; }
+            .title {
+                font-size: 1.5rem;
+            }
+            .header-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            .search-container {
+                width: 100%;
+            }
+            .nav-container {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .students-grid, .teachers-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 1rem;
+            }
+            .student-img, .teacher-img {
+                height: 300px;
+            }
+            .modal-img {
+                width: 150px;
+                height: 150px;
+            }
+            .speech-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .speech-img {
+                margin-bottom: 1rem;
+            }
+            .memories-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            .memory-img {
+                height: 150px;
+            }
+            #scrollToTopBtn {
+                bottom: 20px;
+                right: 20px;
+                width: 45px;
+                height: 45px;
+            }
+            .recipient {
+                font-size: 10px;
+            }
         }
         @media (max-width: 480px) {
-            .students-grid, .teachers-grid { grid-template-columns: 1fr; }
-            .memories-grid { grid-template-columns: 1fr; }
-            .nav-link { padding: 0.5rem 0.8rem; font-size: 0.7rem; }
-            .speech-content { font-size: 0.8rem; }
+            .title {
+                font-size: 1.5rem;
+            }
+            .students-grid, .teachers-grid {
+                grid-template-columns: 1fr;
+            }
+            .memories-grid {
+                grid-template-columns: 1fr;
+            }
+            .nav-link {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.7rem;
+            }
+            .speech-content {
+                font-size: 0.8rem;
+            }
         }
         .loading {
             display: none;
@@ -536,7 +580,9 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .fade-in { animation: fadeIn 0.5s ease-in; }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -549,6 +595,8 @@
         .scroll-loader.show {
             display: block;
         }
+        
+        /* Full image modal */
         #fullImageModal {
             display: none;
             position: fixed;
@@ -574,18 +622,6 @@
             color: white;
             font-size: 2rem;
             cursor: pointer;
-        }
-        /* Skeleton loading card */
-        .skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-            height: 350px;
-            border-radius: 15px 15px 0 0;
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
         }
     </style>
 </head>
@@ -617,36 +653,53 @@
             <div class="spinner"></div>
             <p>Loading content...</p>
         </div>
+
         <!-- Students Section -->
         <section id="students-section" class="section">
             <h2 class="section-title" id="aquarius-title">Aquarius Section</h2>
             <div class="students-grid" id="aquarius-students"></div>
+
             <h2 class="section-title" id="aries-title">Aries Section</h2>
             <div class="students-grid" id="aries-students"></div>
+
             <h2 class="section-title" id="capricorn-title">Capricorn Section</h2>
             <div class="students-grid" id="capricorn-students"></div>
+
             <h2 class="section-title" id="gemini-title">Gemini Section</h2>
             <div class="students-grid" id="gemini-students"></div>
+
             <h2 class="section-title" id="leo-title">Leo Section</h2>
             <div class="students-grid" id="leo-students"></div>
+
             <h2 class="section-title" id="libra-title">Libra Section</h2>
             <div class="students-grid" id="libra-students"></div>
+
             <h2 class="section-title" id="saguitarius-title">Saguitarius Section</h2>
             <div class="students-grid" id="saguitarius-students"></div>
+
             <h2 class="section-title" id="taurus-title">Taurus Section</h2>
             <div class="students-grid" id="taurus-students"></div>
+
             <h2 class="section-title" id="virgo-title">Virgo Section</h2>
             <div class="students-grid" id="virgo-students"></div>
+            
+            <!-- ✅ ADD NEW SECTION HERE -->
+            <!-- <h2 class="section-title" id="pisces-title">Pisces Section</h2> -->
+            <!-- <div class="students-grid" id="pisces-students"></div> -->
+
+
             <div class="scroll-loader" id="scrollLoader">
                 <div class="spinner"></div>
                 <p>Loading more students...</p>
             </div>
         </section>
+
         <!-- Teachers Section -->
         <section id="teachers-section" class="section" style="display: none;">
             <h2 class="section-title">Our Teachers</h2>
             <div class="teachers-grid" id="teachers-grid"></div>
         </section>
+
         <!-- Achievements Section -->
         <section id="achievements-section" class="section" style="display: none;">
             <h2 class="section-title">Individual Achievements</h2>
@@ -654,24 +707,30 @@
             <h2 class="section-title">Award Categories</h2>
             <div class="other-awards-section" id="other-awards"></div>
         </section>
+
         <!-- Speeches Section -->
         <section id="speeches-section" class="section" style="display: none;">
             <h2 class="section-title">Special Speeches</h2>
             <div id="speeches-container"></div>
         </section>
+
         <!-- Memories Section -->
         <section id="memories-section" class="section" style="display: none;">
             <h2 class="section-title">School Memories</h2>
             <div class="memories-grid" id="memories-grid"></div>
         </section>
+
         <!-- Graduation Song Lyrics Section -->
         <section id="lyrics-section" class="section" style="display: none;">
             <h2 class="section-title">Graduation Song Lyrics</h2>
             <div class="lyrics-content" id="lyrics-content">
-                <p class="lyrics-text"></p>
+                <p class="lyrics-text">
+                    <!-- Lyrics will be inserted here via JS or hardcoded -->
+                </p>
             </div>
         </section>
     </main>
+
     <!-- Student/Teacher Profile Modal -->
     <div id="studentModal" class="modal">
         <div class="modal-content">
@@ -687,12 +746,16 @@
             </div>
         </div>
     </div>
+
     <!-- Full Image Modal -->
     <div id="fullImageModal" class="modal">
         <span id="closeFullImage">&times;</span>
         <img id="fullImage" src="" alt="Full Image">
     </div>
+
+    <!-- Scroll to Top Button -->
     <button id="scrollToTopBtn" title="Scroll to Top">↑</button>
+
     <footer>
         <div class="footer-content">
             <div class="footer-logo-container">
@@ -702,12 +765,9 @@
             <p class="copyright">&copy; 2025 ANHS-SH Yearbook. All rights reserved.</p>
         </div>
     </footer>
-    <script>
-        // ⚡ DEBOUNCE SEARCH CONFIG
-        const DEBOUNCE_DELAY = 300; // ms
-        let searchTimeout = null;
 
-        // Data (same as before)
+    <script>
+        // Data
         const students = {
             "aquarius": [
   { img: "https://cached-file-link.jhondumanhog.workers.dev/files/anhs-sh-2025/aquarius/Adrian_D._Gallos.webp", name: "Adrian D. Gallos" },
@@ -1170,11 +1230,13 @@
   { img: "https://cached-file-link.jhondumanhog.workers.dev/files/anhs-sh-2025/virgo/VEROS,_JELLO,_GAY.webp", name: "VEROS, JELLO, GAY" }
 ]
         };
+
         const teachers = [
             { img: "https://cached-file-link.jhondumanhog.workers.dev/files/anhs-sh-2025/libra/Frenz_Jay_O._Felizarta.webp", name: "Frenz Jay O. Felizarta", section_name: "None" },
             { img: "https://cached-file-link.jhondumanhog.workers.dev/files/anhs-sh-2025/libra/Fritz_N._Dioso.webp", name: "Fritz N. Dioso", section_name: "Aquarius" },
             { img: "https://cached-file-link.jhondumanhog.workers.dev/files/anhs-sh-2025/libra/Izzy_N._Robes.webp", name: "Izzy N. Robes", section_name: "Capricorn" }
         ];
+
         const achievements = {
             "Aaron P. Atienza": ["Most Improved Student", "Math Olympiad Winner"],
             "Allison Fate P. Dalugdugan": ["Best in English", "Leadership Award", "Science Fair Champion"],
@@ -1182,6 +1244,7 @@
             "Ashley A. Riños": ["Art Excellence Award", "Most Creative Project","Most Improved Student","Leadership Award","Athlete of the Year","Art Excellence Award","fghghgjhjj","fdfdggfhhfdhh","fdfgfdhghghjhgfh","dfdfdgfhg"],
             "Christian James D. Reas": ["Programming Contest Winner", "Debate Champion"]
         };
+
         const otherAwards = {
             "Most Improved Student": ["Aaron P. Atienza", "April Jean E. Delgado","Ashley A. Riños"],
             "Leadership Award": ["Allison Fate P. Dalugdugan", "Althea Genesis S. Tarinque","Ashley A. Riños"],
@@ -1189,6 +1252,7 @@
             "Art Excellence Award": ["Ashley A. Riños", "Cherry Ann B. Adonis"],
             "Science Fair Champion": ["Allison Fate P. Dalugdugan", "Anghelo L. Olita","Ashley A. Riños"]
         };
+
         const speeches = [
             {
                 name: "Dr. Maria Santos",
@@ -1203,6 +1267,7 @@
                 message: "Fellow students, what a journey it has been! From early morning classes to late-night study sessions, from school events to competitions, we've grown together in ways we never imagined. I'm honored to have served as your Student Council Secretary and witnessed firsthand the incredible talent, creativity, and spirit that defines our class. As we part ways, let's promise to stay connected, support each other's dreams, and never forget the memories we've created at ANHS-SH. The future belongs to us!"
             }
         ];
+
         const memories = [
             "anhs-school.jpg",
             "https://cached-file-link.jhondumanhog.workers.dev/files/anhs-sh-2025/libra/Frenz_Jay_O._Felizarta.webp",
@@ -1213,8 +1278,9 @@
             "https://via.placeholder.com/400x300?text=Debate+Competition",
             "https://via.placeholder.com/400x300?text=Volunteer+Activity"
         ];
+
         const graduationLyrics = `
-        song title
+song title
 
 We walked these halls with dreams so wide,
 Through every storm, we stood with pride.
@@ -1229,9 +1295,10 @@ We’ll carry you in all we say.
 So here’s to friends, to teachers true,
 To every laugh, to all we knew.
 Though paths may part, our bond stays strong—
-Graduates of 2025, we all belong.`; // as before
+Graduates of 2025, we all belong.
+`;
 
-        // DOM refs
+        // DOM Elements
         const searchInput = document.getElementById('searchInput');
         const navLinks = document.querySelectorAll('.nav-link');
         const sections = document.querySelectorAll('.section');
@@ -1249,443 +1316,154 @@ Graduates of 2025, we all belong.`; // as before
         const scrollLoader = document.getElementById('scrollLoader');
         const scrollToTopBtn = document.getElementById('scrollToTopBtn');
 
-        // Pagination & lazy tracking
-        const ITEMS_PER_PAGE = 6;
-        const sectionNames = ['aquarius', 'aries', 'capricorn', 'gemini', 'leo', 'libra', 'saguitarius', 'taurus', 'virgo'];
-        let lazyState = {};
-        sectionNames.forEach(name => {
-            lazyState[name] = {
-                loaded: 0,
-                rendered: 0,
-                fetching: false
-            };
-        });
+        // Pagination
+        // ✅ ADD NEW SECTION HERE 
+        const ITEMS_PER_PAGE = 1000;
+        let currentPage = { aquarius: 1, aries: 1,capricorn: 1, gemini: 1, leo: 1, libra: 1, saguitarius: 1, taurus: 1, virgo: 1}; // to let currentPage = { aquarius: 1, capricorn: 1, pisces: 1 };  // ← add pisces
+        let isFetching = { aquarius: false, aries: false, capricorn: false, gemini: false, leo: false, libra: false, saguitarius: false, taurus: false, virgo: false}; // to let isFetching = { aquarius: false, capricorn: false, pisces: false };  // ← add pisces
 
-        // ✅ LIFECYCLE: Lazy load a batch of cards for a section
-        function renderSectionBatch(sectionId, count = ITEMS_PER_PAGE) {
-    const container = document.getElementById(`${sectionId}-students`);
-    if (!container) return;
-
-    const state = lazyState[sectionId];
-    if (state.fetching || state.rendered >= students[sectionId].length) return;
-
-    const startIndex = state.rendered;
-    const endIndex = Math.min(startIndex + count, students[sectionId].length);
-    const toRender = students[sectionId].slice(startIndex, endIndex);
-
-    toRender.forEach((student, idx) => {
-        const card = document.createElement('div');
-        card.className = 'student-card';
-        card.dataset.name = student.name;
-        card.dataset.section = sectionId;
-        card.dataset.index = startIndex + idx; // for safe lookup
-        card.innerHTML = `
-            <div class="skeleton"></div>
-            <div class="student-info">
-                <h3 class="student-name">${escapeHtml(student.name)}</h3>
-            </div>
-        `;
-        card.addEventListener('click', () => openStudentModal(student, student.img));
-        container.appendChild(card);
-    });
-
-    state.rendered = endIndex;
-    if (state.rendered >= students[sectionId].length) {
-        state.fetching = true;
-    }
-
-    // Observe newly added cards
-    const newCards = Array.from(container.children).slice(startIndex, endIndex);
-    observeCards(newCards);
-}
-
-// Helper to prevent XSS (minor, but good practice)
-function escapeHtml(str) {
-    return str.replace(/[&<>"']/g, tag => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;',
-        '"': '&quot;', "'": '&#39;'
-    }[tag]));
-}
-
-        // ✅ INTERSECTION OBSERVER — lazy-load image WHEN card is visible
-        const imageObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && entry.target.dataset.imgLoaded !== 'true') {
-                    const card = entry.target;
-                    const studentName = card.dataset.name;
-                    const section = card.dataset.section;
-                    const student = students[section].find(s => s.name === studentName);
-                    if (student) {
-                        const imgPlaceholder = card.querySelector('.skeleton');
-                        const imgEl = document.createElement('img');
-                        imgEl.className = 'student-img img-placeholder';
-                        imgEl.alt = student.name;
-                        imgEl.loading = 'lazy';
-                        card.insertBefore(imgEl, imgPlaceholder);
-                        card.removeChild(imgPlaceholder);
-                        lazyLoadImage(imgEl, student.img);
-                        card.dataset.imgLoaded = 'true';
-                    }
-                    imageObserver.unobserve(card);
-                }
-            });
-        }, { rootMargin: '100px' });
-
-        function observeCards(cards) {
-            cards.forEach(card => imageObserver.observe(card));
-        }
-
-        // ✅ LAZY LOAD IMAGE (same, but with error fallback)
+        // Lazy load image
         function lazyLoadImage(imgElement, src) {
-    if (!imgElement || !src) {
-        imgElement?.setAttribute('src', 'https://via.placeholder.com/300x300/e0e0e0/999999?text=No+Image');
-        imgElement?.classList.remove('img-placeholder');
-        imgElement?.classList.add('img-loaded');
-        return;
-    }
+            if (!imgElement || !src) return;
 
-    const placeholder = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3Ctext x='50%25' y='50%25' fill='%23999999' font-size='14' text-anchor='middle' dominant-baseline='middle'>Loading...%3C/text%3E%3C/svg%3E";
-    imgElement.src = placeholder;
-    imgElement.classList.add('img-placeholder');
+            // Tiny transparent placeholder to avoid layout shift & enable blur
+            const placeholder = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Crect width='100%25' height='100%25' fill='%23f0f0f0'/%3E%3C/svg%3E";
+            imgElement.src = placeholder;
+            imgElement.classList.add('img-placeholder');
 
-    const img = new Image();
-    img.onload = () => {
-        imgElement.src = src;
-        imgElement.classList.remove('img-placeholder');
-        imgElement.classList.add('img-loaded');
-        const card = imgElement.closest('.student-card, .teacher-card, .speech-card, .modal-header');
-        if (card) card.classList.add('visible');
-    };
-    img.onerror = () => {
-        imgElement.src = 'https://via.placeholder.com/300x300/e0e0e0/999999?text=Image+Failed';
-        imgElement.classList.remove('img-placeholder');
-        imgElement.classList.add('img-loaded');
-        const card = imgElement.closest('.student-card, .teacher-card');
-        if (card) card.classList.add('visible');
-    };
-    img.src = src;
-}
-
-        // ✅ GET ALL AWARDS (unchanged)
-        function getAllAwards(studentName) {
-            const awardsSet = new Set();
-            if (achievements[studentName]) achievements[studentName].forEach(a => awardsSet.add(a));
-            for (const [award, recipients] of Object.entries(otherAwards)) {
-                if (recipients.includes(studentName)) awardsSet.add(award);
-            }
-            return Array.from(awardsSet);
-        }
-
-        // ✅ OPEN STUDENT MODAL (unchanged)
-        function openStudentModal(student, imgSrc) {
-            modalName.textContent = student.name;
-            modalAwards.innerHTML = '';
-            const allAwards = getAllAwards(student.name);
-            if (allAwards.length > 0) {
-                allAwards.forEach(award => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<span class="award-icon">🏆</span> ${award}`;
-                    modalAwards.appendChild(li);
-                });
-            } else {
-                const li = document.createElement('li');
-                li.textContent = "No awards recorded yet.";
-                modalAwards.appendChild(li);
-            }
-            lazyLoadImage(modalImg, imgSrc);
-            modalAwardsSection.style.display = 'block';
-            viewFullBtn.onclick = () => {
-                fullImage.src = imgSrc;
-                fullImageModal.style.display = 'flex';
+            const img = new Image();
+            img.onload = () => {
+                imgElement.src = src;
+                imgElement.classList.remove('img-placeholder');
+                imgElement.classList.add('img-loaded');
             };
-            studentModal.style.display = 'flex';
+            img.onerror = () => {
+                imgElement.src = "https://via.placeholder.com/300x300/cccccc/666666?text=Image+Not+Found";
+                imgElement.classList.remove('img-placeholder');
+                imgElement.classList.add('img-loaded');
+            };
+            img.src = src;
         }
 
-        // ✅ SEARCH WITH DEBOUNCE
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const term = e.target.value.toLowerCase().trim();
-                filterStudents(term);
-            }, DEBOUNCE_DELAY);
-        });
-
-        function filterStudents(term) {
-    // Reset UI
-    document.querySelectorAll('.section-title').forEach(t => {
-        t.classList.remove('highlight');
-        t.style.display = 'block';
-    });
-    document.querySelectorAll('.student-card').forEach(c => {
-        c.style.display = 'none';
-        c.classList.remove('visible');
-    });
-
-    // Show all if empty
-    if (!term.trim()) {
-        document.querySelectorAll('.students-grid').forEach(grid => grid.style.display = 'grid');
-        document.querySelectorAll('.student-card').forEach(c => {
-            c.style.display = 'block';
-            if (c.dataset.imgLoaded === 'true') c.classList.add('visible');
-        });
-        scrollLoader.style.display = 'none';
-        return;
-    }
-
-    const termNormalized = term.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // accent-insensitive
-
-    // Map section keys to title IDs
-    const sectionMap = {
-        aquarius: 'aquarius-title', aries: 'aries-title', capricorn: 'capricorn-title',
-        gemini: 'gemini-title', leo: 'leo-title', libra: 'libra-title',
-        saguitarius: 'saguitarius-title', taurus: 'taurus-title', virgo: 'virgo-title'
-    };
-
-    const sectionsWithMatches = new Set();
-    let totalMatches = 0;
-
-    // ✅ Pre-render ALL sections fully if search term is present (simple fix; alternatively, smart-load only matched sections)
-    // For performance, we *could* only render matched sections, but for correctness & simplicity, let’s ensure all students exist in DOM first.
-    sectionNames.forEach(section => {
-        const state = lazyState[section];
-        if (state.rendered < students[section].length && !state.fetching) {
-            const remaining = students[section].length - state.rendered;
-            renderSectionBatch(section, remaining);
-        }
-    });
-
-    // Wait a tick for DOM to update before filtering
-    setTimeout(() => {
-        // Match section names first
-        Object.entries(sectionMap).forEach(([key, titleId]) => {
-            const titleEl = document.getElementById(titleId);
-            if (!titleEl) return;
-            const sectionLabel = titleEl.textContent.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            if (key.includes(termNormalized) || sectionLabel.includes(termNormalized)) {
-                sectionsWithMatches.add(key);
-                titleEl.classList.add('highlight');
-            }
-        });
-
-        // Match student names
-        sectionNames.forEach(section => {
-            const sectionStudents = students[section] || [];
-            const container = document.getElementById(`${section}-students`);
-            if (!container) return;
-
-            const cards = container.querySelectorAll('.student-card');
-            cards.forEach((card, idx) => {
-                if (idx >= sectionStudents.length) return; // safety
-                const studentName = sectionStudents[idx].name;
-                const normalizedStudent = studentName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                if (normalizedStudent.includes(termNormalized)) {
-                    card.style.display = 'block';
-                    sectionsWithMatches.add(section);
-                    totalMatches++;
-                    // Ensure image is loaded
-                    if (card.dataset.imgLoaded !== 'true') {
-                        const student = sectionStudents[idx];
-                        const imgPlaceholder = card.querySelector('.skeleton');
-                        if (imgPlaceholder) {
-                            const imgEl = document.createElement('img');
-                            imgEl.className = 'student-img img-placeholder';
-                            imgEl.alt = student.name;
-                            card.insertBefore(imgEl, imgPlaceholder);
-                            card.removeChild(imgPlaceholder);
-                            lazyLoadImage(imgEl, student.img);
-                            card.dataset.imgLoaded = 'true';
-                        }
-                    }
-                }
-            });
-        });
-
-        // Show/hide sections
-        sectionNames.forEach(section => {
-            const titleEl = document.getElementById(`${section}-title`);
-            const container = document.getElementById(`${section}-students`);
-            const hasMatch = sectionsWithMatches.has(section);
-            if (titleEl) titleEl.style.display = hasMatch ? 'block' : 'none';
-            if (container) container.style.display = hasMatch ? 'grid' : 'none';
-        });
-
-        // ✅ Show "No results" if needed
-        const noResultsMsg = document.getElementById('noResultsMsg') || (() => {
-            const el = document.createElement('div');
-            el.id = 'noResultsMsg';
-            el.style.textAlign = 'center';
-            el.style.padding = '2rem';
-            el.style.fontSize = '1.2rem';
-            el.style.color = 'var(--primary-color)';
-            el.style.display = 'none';
-            document.querySelector('#students-section').appendChild(el);
-            return el;
-        })();
-        noResultsMsg.textContent = `🔍 No students or sections match "${term}".`;
-        noResultsMsg.style.display = totalMatches === 0 ? 'block' : 'none';
-
-        // Hide scroll loader during search
-        scrollLoader.style.display = 'none';
-    }, 50); // small delay to allow DOM updates
-}
-        // ✅ NAVIGATION (same)
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                navLinks.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                const section = link.getAttribute('data-section');
-                sections.forEach(s => {
-                    s.style.display = (s.id === `${section}-section`) ? 'block' : 'none';
-                });
-            });
-        });
-
-        // ✅ INFINITE SCROLL (enhanced)
-        let scrollThrottle = false;
-        window.addEventListener('scroll', () => {
-            if (scrollThrottle) return;
-            scrollThrottle = true;
-            setTimeout(() => scrollThrottle = false, 100);
-
-            const studentsSection = document.getElementById('students-section');
-            if (studentsSection.getBoundingClientRect().bottom < 0) return;
-
-            sectionNames.forEach(section => {
-                const container = document.getElementById(`${section}-students`);
-                const titleEl = document.getElementById(`${section}-title`);
-                // Skip if title is hidden (filtered out)
-                if (titleEl && titleEl.style.display === 'none') return;
-
-                const rect = container.getBoundingClientRect();
-                if (rect.bottom <= window.innerHeight + 400 && !lazyState[section].fetching && lazyState[section].rendered < students[section].length) {
-                    renderSectionBatch(section, ITEMS_PER_PAGE);
-                }
-            });
-        });
-
-        // ✅ INITIALIZE (only render first batch per section)
-        document.addEventListener('DOMContentLoaded', () => {
-            sectionNames.forEach(section => {
-                renderSectionBatch(section, ITEMS_PER_PAGE);
-            });
-            generateTeachers();
-            generateIndividualAchievements();
-            generateOtherAwards();
-            generateSpeeches();
-            generateMemories();
-            generateLyrics();
-            document.querySelectorAll('.section').forEach(s => s.classList.add('fade-in'));
-
-            // Observe initial cards
-            setTimeout(() => {
-                document.querySelectorAll('.student-card').forEach(card => {
-                    if (!card.dataset.imgLoaded) imageObserver.observe(card);
-                });
-            }, 500);
-        });
-
-        // ✅ MODAL CLOSE + KEYBOARD
-        closeModal.addEventListener('click', () => studentModal.style.display = 'none');
-        closeFullImage.addEventListener('click', () => fullImageModal.style.display = 'none');
-        window.addEventListener('click', (e) => {
-            if (e.target === studentModal) studentModal.style.display = 'none';
-            if (e.target === fullImageModal) fullImageModal.style.display = 'none';
-        });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                studentModal.style.display = 'none';
-                fullImageModal.style.display = 'none';
-            }
-        });
-
-        // ✅ HELPER: Teachers & others unchanged (same as original)
-        function generateTeachers() {
-            const container = document.getElementById('teachers-grid');
-            container.innerHTML = '';
-            teachers.forEach(teacher => {
-                const card = document.createElement('div');
-                card.className = 'teacher-card visible';
-                const sectionText = teacher.section_name && teacher.section_name !== "None" ? `<div class="teacher-section">${teacher.section_name} Section</div>` : '';
-                card.innerHTML = `
-                    <div class="skeleton"></div>
-                    <div class="teacher-info">
-                        <h3 class="teacher-name">${teacher.name}</h3>
-                        ${sectionText}
-                    </div>
-                `;
-                card.addEventListener('click', () => {
-                    fullImage.src = teacher.img;
-                    fullImageModal.style.display = 'flex';
-                    // Preload modal image
-                    lazyLoadImage(modalImg, teacher.img);
-                });
-                container.appendChild(card);
-                // Insert image
-                const imgPlaceholder = card.querySelector('.skeleton');
-                const imgEl = document.createElement('img');
-                imgEl.className = 'teacher-img img-placeholder';
-                card.insertBefore(imgEl, imgPlaceholder);
-                card.removeChild(imgPlaceholder);
-                lazyLoadImage(imgEl, teacher.img);
-            });
-        }
-
-        // Rest of helpers (generateSpeeches, etc.) — identical to original
+        // Get all awards (individual + other) for a student
         function getAllAwards(studentName) {
             const awardsSet = new Set();
-            if (achievements[studentName]) achievements[studentName].forEach(a => awardsSet.add(a));
-            for (const award in otherAwards) {
-                if (otherAwards[award].includes(studentName)) {
+            if (achievements[studentName]) {
+                achievements[studentName].forEach(a => awardsSet.add(a));
+            }
+            for (const [award, recipients] of Object.entries(otherAwards)) {
+                if (recipients.includes(studentName)) {
                     awardsSet.add(award);
                 }
             }
             return Array.from(awardsSet);
         }
 
-        function generateIndividualAchievements() {
-            const container = document.getElementById('individual-achievements');
-            container.innerHTML = '';
-            const allAwardedStudents = new Set([
-                ...Object.keys(achievements),
-                ...Object.values(otherAwards).flat()
-            ]);
-            const allStudents = [...students.aquarius, ...students.capricorn];
-            const studentObjects = Array.from(allAwardedStudents)
-                .map(name => allStudents.find(s => s.name === name))
-                .filter(Boolean);
-            const seen = new Set();
-            const uniqueStudents = studentObjects.filter(s => {
-                if (seen.has(s.name)) return false;
-                seen.add(s.name);
-                return true;
-            });
-            uniqueStudents.forEach(student => {
-                const allAwards = getAllAwards(student.name);
-                if (allAwards.length === 0) return;
+        // Generate student cards
+        function generateStudentCards(section, containerId, page = 1) {
+            const container = document.getElementById(containerId);
+            const startIndex = (page - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const studentsToShow = students[section].slice(startIndex, endIndex);
+
+            studentsToShow.forEach(student => {
                 const card = document.createElement('div');
-                card.className = 'speech-card fade-in';
+                card.className = 'student-card fade-in';
                 card.innerHTML = `
-                    <div class="speech-header">
-                        <img alt="${student.name}" class="speech-img" loading="lazy">
-                        <div class="speech-info">
-                            <h3>${student.name}</h3>
-                            <p>Total Awards: ${allAwards.length}</p>
-                        </div>
-                    </div>
-                    <div class="speech-content">
-                        <ul>
-                            ${allAwards.map(award => `<li>🏆 ${award}</li>`).join('')}
-                        </ul>
+                    <img alt="${student.name}" class="student-img" loading="lazy">
+                    <div class="student-info">
+                        <h3 class="student-name">${student.name}</h3>
                     </div>
                 `;
-                const imgElement = card.querySelector('.speech-img');
+                const imgElement = card.querySelector('.student-img');
                 lazyLoadImage(imgElement, student.img);
                 card.addEventListener('click', () => openStudentModal(student, student.img));
                 container.appendChild(card);
             });
+
+            if (endIndex >= students[section].length) {
+                isFetching[section] = true;
+            }
         }
 
+        // Generate teachers
+        function generateTeachers() {
+            const container = document.getElementById('teachers-grid');
+            container.innerHTML = '';
+            teachers.forEach(teacher => {
+                const card = document.createElement('div');
+                card.className = 'teacher-card fade-in';
+                const sectionText = teacher.section_name && teacher.section_name !== "None" ? `<div class="teacher-section">${teacher.section_name} Section</div>` : '';
+                card.innerHTML = `
+                    <img alt="${teacher.name}" class="teacher-img" loading="lazy">
+                    <div class="teacher-info">
+                        <h3 class="teacher-name">${teacher.name}</h3>
+                        ${sectionText}
+                    </div>
+                `;
+                const imgElement = card.querySelector('.teacher-img');
+                lazyLoadImage(imgElement, teacher.img);
+                card.addEventListener('click', () => {
+                    fullImage.src = teacher.img;
+                    fullImageModal.style.display = 'flex';
+                });
+                container.appendChild(card);
+            });
+        }
+
+        // Generate individual achievements (now includes all awards)
+function generateIndividualAchievements() {
+    const container = document.getElementById('individual-achievements');
+    container.innerHTML = '';
+
+    // Get all unique student names who have any award (individual or category-based)
+    const allAwardedStudents = new Set([
+        ...Object.keys(achievements),
+        ...Object.values(otherAwards).flat()
+    ]);
+
+    // Map names back to student objects
+    const allStudents = [...students.aquarius, ...students.capricorn];
+    const studentObjects = Array.from(allAwardedStudents)
+        .map(name => allStudents.find(s => s.name === name))
+        .filter(Boolean); // remove undefined
+
+    // Remove duplicates by name
+    const seen = new Set();
+    const uniqueStudents = studentObjects.filter(s => {
+        if (seen.has(s.name)) return false;
+        seen.add(s.name);
+        return true;
+    });
+
+    uniqueStudents.forEach(student => {
+        const allAwards = getAllAwards(student.name);
+        if (allAwards.length === 0) return; // skip if somehow no awards
+
+        const card = document.createElement('div');
+        card.className = 'speech-card fade-in';
+        card.innerHTML = `
+            <div class="speech-header">
+                <img alt="${student.name}" class="speech-img" loading="lazy">
+                <div class="speech-info">
+                    <h3>${student.name}</h3>
+                    <p>Total Awards: ${allAwards.length}</p>
+                </div>
+            </div>
+            <div class="speech-content">
+                <ul>
+                    ${allAwards.map(award => `<li>🏆 ${award}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+        const imgElement = card.querySelector('.speech-img');
+        lazyLoadImage(imgElement, student.img);
+        card.addEventListener('click', () => openStudentModal(student, student.img));
+        container.appendChild(card);
+    });
+}
+
+        // Generate other awards
         function generateOtherAwards() {
             const container = document.getElementById('other-awards');
             container.innerHTML = '';
@@ -1706,11 +1484,14 @@ function escapeHtml(str) {
                 recipient.addEventListener('click', () => {
                     const studentName = recipient.getAttribute('data-name');
                     const student = [...students.aquarius, ...students.capricorn].find(s => s.name === studentName);
-                    if (student) openStudentModal(student, student.img);
+                    if (student) {
+                        openStudentModal(student, student.img);
+                    }
                 });
             });
         }
 
+        // Generate speeches
         function generateSpeeches() {
             const container = document.getElementById('speeches-container');
             container.innerHTML = '';
@@ -1735,6 +1516,7 @@ function escapeHtml(str) {
             });
         }
 
+        // Generate memories
         function generateMemories() {
             const container = document.getElementById('memories-grid');
             container.innerHTML = '';
@@ -1747,21 +1529,296 @@ function escapeHtml(str) {
                     fullImage.src = imgSrc;
                     fullImageModal.style.display = 'flex';
                 });
-                container.appendChild(img);
                 lazyLoadImage(img, imgSrc);
+                container.appendChild(img);
             });
         }
-
-        function generateLyrics() {
-            const lyricsContainer = document.getElementById('lyrics-content');
-            lyricsContainer.querySelector('.lyrics-text').textContent = graduationLyrics;
+        // Open student modal
+        function openStudentModal(student, imgSrc) {
+            modalName.textContent = student.name;
+            modalAwards.innerHTML = '';
+            const allAwards = getAllAwards(student.name);
+            if (allAwards.length > 0) {
+                allAwards.forEach(award => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span class="award-icon">🏆</span> ${award}`;
+                    modalAwards.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.textContent = "No awards recorded yet.";
+                modalAwards.appendChild(li);
+            }
+            lazyLoadImage(modalImg, imgSrc);
+            modalAwardsSection.style.display = 'block';
+            viewFullBtn.onclick = () => {
+                fullImage.src = imgSrc;
+                fullImageModal.style.display = 'flex';
+            };
+            studentModal.style.display = 'flex';
         }
 
-        // ✅ SCROLL TO TOP
+        
+        // Open teacher modal
+function openTeacherModal(teacher, imgSrc) {
+    modalName.textContent = teacher.name;
+    modalAwards.innerHTML = '';
+
+    // Display section name if available and not "None"
+    if (teacher.section_name && teacher.section_name !== "None") {
+        const li = document.createElement('li');
+        li.textContent = `${teacher.section_name} Section`;
+        modalAwards.appendChild(li);
+    } else {
+        const li = document.createElement('li');
+        li.textContent = "No assigned section";
+        modalAwards.appendChild(li);
+    }
+
+    lazyLoadImage(modalImg, imgSrc);
+
+    // Update modal header to "Section" instead of "Profile"
+    const modalHeader = document.querySelector('#studentModal .modal-section h3');
+    modalHeader.textContent = 'Section';
+
+    modalAwardsSection.style.display = 'block';
+
+    // Update button behavior to show full image
+    viewFullBtn.onclick = () => {
+        fullImage.src = imgSrc;
+        fullImageModal.style.display = 'flex';
+    };
+
+   
+
+    // Show modal
+    studentModal.style.display = 'flex';
+}
+        // Close modals
+        closeModal.addEventListener('click', () => studentModal.style.display = 'none');
+        closeFullImage.addEventListener('click', () => fullImageModal.style.display = 'none');
+        window.addEventListener('click', (e) => {
+            if (e.target === studentModal) studentModal.style.display = 'none';
+            if (e.target === fullImageModal) fullImageModal.style.display = 'none';
+        });
+
+        // Navigation
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                const section = link.getAttribute('data-section');
+                sections.forEach(s => {
+                    s.style.display = (s.id === `${section}-section`) ? 'block' : 'none';
+                });
+            });
+        });
+
+        // Search
+       // Enhanced Search: Hide sections with no matches
+searchInput.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase().trim();
+
+    // Reset: Show all section titles and cards initially
+    document.querySelectorAll('.section-title').forEach(t => {
+        t.classList.remove('highlight');
+        t.style.display = 'block';
+    });
+    document.querySelectorAll('.student-card, .teacher-card').forEach(c => c.style.display = 'block');
+
+    // If search is empty, stop here
+    if (term === '') return;
+
+    // Section-to-container mapping (for extensibility)
+    const sectionMap = {
+        aquarius: { titleId: 'aquarius-title', containerId: 'aquarius-students' },
+        aries: { titleId: 'aries-title', containerId: 'aries-students' },
+        capricorn: { titleId: 'capricorn-title', containerId: 'capricorn-students' },
+        gemini: { titleId: 'gemini-title', containerId: 'gemini-students' },
+        leo: { titleId: 'leo-title', containerId: 'leo-students' },
+        libra: { titleId: 'libra-title', containerId: 'libra-students' },
+        saguitarius: { titleId: 'saguitarius-title', containerId: 'saguitarius-students' },
+        taurus: { titleId: 'taurus-title', containerId: 'taurus-students' },
+        virgo: { titleId: 'virgo-title', containerId: 'virgo-students' }
+        // ✅ Add new sections here as needed, e.g.:
+        // pisces: { titleId: 'pisces-title', containerId: 'pisces-students' }
+    };
+
+    // First pass: check for section name match
+    let sectionMatchFound = false;
+    for (const [key, { titleId, containerId }] of Object.entries(sectionMap)) {
+        const titleEl = document.getElementById(titleId);
+        if (key.toLowerCase().includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term))) {
+            titleEl.classList.add('highlight');
+            sectionMatchFound = true;
+        }
+    }
+
+    // Gather all student names across sections (with section association)
+    const allStudents = [];
+    for (const [sectionKey, data] of Object.entries(sectionMap)) {
+        const studentsInSection = students[sectionKey] || [];
+        studentsInSection.forEach(student => {
+            allStudents.push({ ...student, section: sectionKey });
+        });
+    }
+
+    // Find matching students
+    const matchingStudents = allStudents.filter(s =>
+        s.name.toLowerCase().includes(term)
+    );
+
+    // Build set of sections that have matches (either by name or student)
+    const sectionsWithMatches = new Set(matchingStudents.map(s => s.section));
+    if (sectionMatchFound) {
+        // If section name matched, show *all* students in that section
+        for (const [key, { titleId }] of Object.entries(sectionMap)) {
+            const titleEl = document.getElementById(titleId);
+            if (key.toLowerCase().includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term))) {
+                sectionsWithMatches.add(key);
+            }
+        }
+    }
+
+    // Hide sections *without* matches
+    for (const [key, { titleId, containerId }] of Object.entries(sectionMap)) {
+        const titleEl = document.getElementById(titleId);
+        const containerEl = document.getElementById(containerId);
+        if (sectionsWithMatches.has(key)) {
+            titleEl.style.display = 'block';
+            // If section name matched (not just student), show *all* its students
+            const sectionNameMatched = key.toLowerCase().includes(term) || (titleEl && titleEl.textContent.toLowerCase().includes(term));
+            if (sectionNameMatched) {
+                containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'block');
+            } else {
+                // Otherwise, show only matching students in this section
+                containerEl.querySelectorAll('.student-card').forEach(card => {
+                    const nameEl = card.querySelector('.student-name');
+                    const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+                    card.style.display = name.includes(term) ? 'block' : 'none';
+                });
+            }
+        } else {
+            // Hide entire section
+            titleEl.style.display = 'none';
+            containerEl.querySelectorAll('.student-card').forEach(c => c.style.display = 'none');
+        }
+    }
+    // After hiding cards & titles, also hide student-grid containers if empty
+document.querySelectorAll('.students-grid').forEach(grid => {
+    const visibleCards = Array.from(grid.children).some(card => 
+        card.style.display !== 'none'
+    );
+    grid.style.display = visibleCards ? 'grid' : 'none';
+});
+
+    // Optional: smooth scroll to first visible section if any
+    const firstVisibleTitle = document.querySelector('.section-title:not([style*="display: none"])');
+    if (firstVisibleTitle) {
+        firstVisibleTitle.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+    }
+});
+
+
+
+        // Scroll to top
         window.addEventListener('scroll', () => {
             scrollToTopBtn.classList.toggle('show', window.pageYOffset > 300);
         });
         scrollToTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+ 
+        // Infinite scroll
+        let isScrolling = false;
+        function handleScroll() {
+        if (isScrolling) return;
+        const studentsSection = document.getElementById('students-section');
+        const rect = studentsSection.getBoundingClientRect();
+        if (rect.top > window.innerHeight || rect.bottom < 0) return;
+
+        // ✅ Add new section name to this list
+        const sectionNames = ['aquarius', 'aries','capricorn', 'gemini', 'leo', 'libra', 'saguitarius', 'taurus', 'virgo'];  // to const sectionNames = ['aquarius', 'capricorn', 'pisces'];  // ← updated list
+        let targetSection = null;
+
+        for (const name of sectionNames) {
+            if (!isFetching[name]) {
+            const container = document.getElementById(`${name}-students`);
+            const containerRect = container.getBoundingClientRect();
+            if (containerRect.bottom <= window.innerHeight + 200) {
+                // scrolled near bottom of this section
+                targetSection = name;
+                break;
+            }
+            }
+        }
+
+        if (!targetSection || isFetching[targetSection]) return;
+
+        isScrolling = true;
+        scrollLoader.classList.add('show');
+        setTimeout(() => {
+            currentPage[targetSection]++;
+            generateStudentCards(targetSection, `${targetSection}-students`, currentPage[targetSection]);
+            scrollLoader.classList.remove('show');
+            isScrolling = false;
+        }, 800);
+        }
+        
+        window.addEventListener('scroll', handleScroll);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loading.style.display = 'block';
+            setTimeout(() => {
+
+                // ✅ ADD NEW SECTION HERE 
+                generateStudentCards('aquarius', 'aquarius-students', 1);
+                generateStudentCards('aries', 'aries-students', 1);
+                generateStudentCards('capricorn', 'capricorn-students', 1);
+                generateStudentCards('gemini', 'gemini-students', 1);
+                generateStudentCards('leo', 'leo-students', 1);
+                generateStudentCards('libra', 'libra-students', 1);
+                generateStudentCards('saguitarius', 'saguitarius-students', 1);
+                generateStudentCards('taurus', 'taurus-students', 1);
+                generateStudentCards('virgo', 'virgo-students', 1);
+                // generateStudentCards('pisces', 'pisces-students', 1);  // ✅ add this
+
+                generateTeachers();
+                generateIndividualAchievements();
+                generateOtherAwards();
+                generateSpeeches();
+                generateMemories();
+                generateLyrics();
+                loading.style.display = 'none';
+
+                 // ✅ ADD NEW SECTION HERE
+                currentPage.aquarius = 1;
+                currentPage.aries = 1;
+                currentPage.capricorn = 1;
+                currentPage.gemini = 1;
+                currentPage.leo = 1;
+                currentPage.libra = 1;
+                currentPage.saguitarius = 1;
+                currentPage.taurus = 1;
+                currentPage.virgo = 1;
+                // currentPage.pisces = 1;  // ✅
+
+                document.querySelectorAll('.section').forEach(s => s.classList.add('fade-in'));
+            }, 1000);
+        });
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (studentModal.style.display === 'flex') studentModal.style.display = 'none';
+                if (fullImageModal.style.display === 'flex') fullImageModal.style.display = 'none';
+            }
+        });
+
+        function generateLyrics() {
+            const lyricsContainer = document.getElementById('lyrics-content');
+            lyricsContainer.innerHTML = `<p class="lyrics-text">${graduationLyrics}</p>`;
+        }
     </script>
 </body>
 </html>
